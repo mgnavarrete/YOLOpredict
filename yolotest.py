@@ -1,24 +1,29 @@
 from ultralytics import YOLO
-
+import os
 import cv2
 
 
-model_path = '/home/phillip/Desktop/train2/weights/last.pt'
+model_path = 'last.pt'
 
-image_path = '/home/phillip/Desktop/todays_tutorial/41_image_segmentation_yolov8/code/data/images/val/1be566eccffe9561.png'
+folder_path = 'images' # Folder containing images to be segmented example: images/1.JPEG
 
-img = cv2.imread(image_path)
-H, W, _ = img.shape
+img_names = os.listdir(folder_path)
+img_names.sort()
 
-model = YOLO(model_path)
 
-results = model(img)
+for image_path in img_names:
+    print(image_path)
+    img = cv2.imread("images/" + image_path)
+    # resize image to 640x640
+    img = cv2.resize(img, (640, 640))
+    H, W, _ = img.shape
 
-for result in results:
-    for j, mask in enumerate(result.masks.data):
+    model = YOLO(model_path)
 
-        mask = mask.numpy() * 255
+    results = model(img)
+    for result in results:
+        for j, mask in enumerate(result.masks.data):
+            mask = mask.cpu().numpy() * 255  # Move tensor to CPU before converting to NumPy array
+            mask = cv2.resize(mask, (W, H))
+            cv2.imwrite(f'results/{image_path[:-4]}{j}.png', mask)  # Save each mask with a unique filename
 
-        mask = cv2.resize(mask, (W, H))
-
-        cv2.imwrite('./output.png', mask)
