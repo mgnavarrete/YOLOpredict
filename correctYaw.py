@@ -176,19 +176,25 @@ for image_path in img_names:
                     
                     yaw1 = anguloNorte(float(lon1), float(lat1), float(lon3), float(lat3))            
                     yaw2 = anguloNorte(float(lon2), float(lat2), float(lon4), float(lat4))
-                    #print(f"angulo del poligono: {yaw1} y {yaw2}")
-                    yawprom = min(yaw1, yaw2)
+                    print(f"angulo del poligono: {yaw1} y {yaw2}")
+                    
+                    yaw1 = yawKML - yaw1
+                    yaw2 = yawKML - yaw2
+                    # Elejir el mas cerca a 0   
+                    if abs(yaw1) < abs(yaw2):
+                        yawprom = yaw1
+                    else:
+                        yawprom = yaw2
 
-                    offset = int(yawKML - yawprom)
-                    yawList.append(offset)
+                    yawList.append(yawprom)
                 
     # cv2.imwrite("results/"+ image_path, img)               
                 
     if len(yawList) == 0:
         offset_yaw = 0
     else:
-        # El menor de yawList es el que se toma         
-        offset_yaw = min(yawList)    
+        # El mas cercano a 0 de yawlist
+        offset_yaw = min(yawList, key=abs)    
           
     # Abre el archivo JSON en modo lectura
     with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:

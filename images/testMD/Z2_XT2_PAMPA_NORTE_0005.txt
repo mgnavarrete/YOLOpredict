@@ -152,6 +152,6 @@
     "offset_N": 0,
     "offset_N_tot": 0.0,
     "offset_altura": 0.0,
-    "offset_yaw": -2,
+    "offset_yaw": -1.4217486695605999,
     "offset-yaw": 7
 }
