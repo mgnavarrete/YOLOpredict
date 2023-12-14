@@ -65,6 +65,11 @@ geonp_path = 'images/C2PP/georef_numpy' # Carpeta que contiene los archivos nump
 metadata_path = 'images/C2PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
 metadatanew_path = 'images/C2PP/metadata_yaw' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
+# folder_path = 'images/testImg' # Carpeta que contiene las imágenes originales
+# geonp_path = 'images/testNP' # Carpeta que contiene los archivos numpy georeferenciados
+# metadata_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos
+# metadatanew_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
+
 img_names = os.listdir(folder_path)
 img_names.sort()
 
@@ -123,11 +128,25 @@ for image_path in img_names:
                 contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 #cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
                 if contours:
+                    # Encuentra el contorno más grande
                     largest_contour = max(contours, key=cv2.contourArea)
 
                     # Aproximación del polígono
                     epsilon = 0.015 * cv2.arcLength(largest_contour, True)
                     approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
+                    approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
+                    approx_polygon = np.array(approx_polygon, dtype=int)
+                    # print(f"approx_polygon: {approx_polygon}")
+                    
+                    # Encuentra el rectángulo rotado que mejor se ajusta al contorno
+                    rect = cv2.minAreaRect(largest_contour)
+                    rect_points = cv2.boxPoints(rect).astype(int)
+                    rect_points = sorted(rect_points, key=lambda x: x[0])
+                    rect_points = np.array(rect_points, dtype=int)
+                    
+                    #print(f"rect_points: {rect_points}")
+                    # img = cv2.drawContours(img, [rect_points], -1, (255, 0, 0), 2)
+        
                     
                     x1 = approx_polygon[0][0][0]
                     y1 = approx_polygon[0][0][1]
@@ -138,6 +157,8 @@ for image_path in img_names:
                     x4 = approx_polygon[3][0][0]
                     y4 = approx_polygon[3][0][1]
                 
+                    cv2.circle(img, (x1, y1), 3, (0, 255, 0), -1)
+                    cv2.circle(img, (x3, y3), 3, (0, 255, 0), -1)
                     geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
                     
                     x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
@@ -152,14 +173,15 @@ for image_path in img_names:
                     lat4, lon4 = transform(utm_proj, latlon_proj, x4_utm, y4_utm)
 
                     
-                    yaw1 = anguloNorte(float(lon1), float(lat1), float(lon3), float(lon3))            
-                    yaw2 = anguloNorte(float(lon2), float(lat1), float(lon4), float(lat4))
+                    yaw1 = anguloNorte(float(lon1), float(lat1), float(lon3), float(lat3))            
+                    yaw2 = anguloNorte(float(lon2), float(lat2), float(lon4), float(lat4))
+                    #print(f"angulo del poligono: {yaw1} y {yaw2}")
                     yawprom = (yaw1 + yaw2) / 2
 
                     offset = int(yawKML - yawprom)
                     yawList.append(offset)
                 
-                    
+    # cv2.imwrite("results/"+ image_path, img)               
                 
     if len(yawList) == 0:
         offset_yaw = 0
@@ -178,4 +200,4 @@ for image_path in img_names:
         json.dump(data, archivo, indent=4)
     
         
-    print("El valor de 'offset-yaw' se ha modificado con éxito.")  
+    print("El valor de 'offset_yaw' se ha modificado con éxito.")  
