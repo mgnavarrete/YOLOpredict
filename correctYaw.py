@@ -78,21 +78,25 @@ latlon_proj = Proj(proj='latlong', ellps='WGS84')
 csv_file_path = 'kmlTable.csv'
 
 # Preprocesar coordenadas en el DataFrame
+print("Cargando datos de KML...")
+
 df = pd.read_csv(csv_file_path)
 for col in ['polyP1', 'polyP2', 'polyP3', 'polyP4']:
     df[col] = df[col].apply(lambda x: tuple(map(float, x.split(','))))
+print("Datos cargados")
 
+print("Cargando modelo YOLO..")
+model = YOLO(model_path)
+print("Modelo cargado")
 
+print("Iniciando análisis de imágenes...")  
 for image_path in img_names:
-    print(f"Analizando imagen: {image_path}")
     keypoint = []
+    
     img = cv2.imread(folder_path + "/" + image_path)
 
     H, W, _ = img.shape
     img_resized = cv2.resize(img, (640, 640))
-
-    model = YOLO(model_path)
-
     results = model(img_resized)
     for result in results:
         for j, mask in enumerate(result.masks.data):
@@ -122,50 +126,25 @@ for image_path in img_names:
                 y4 = approx_polygon[3][0][1]
             
                 geoImg = np.load(f"images/testNP/{image_path[:-4]}.npy")
-                namep1, minp1, polynamep1 = findClosest(x1,y1,df)
-                namep2, minp2, polynamep2 = findClosest(x2,y2,df)
-                namep3, minp3, polynamep3 = findClosest(x3,y3,df)
-                namep4, minp4, polynamep4 = findClosest(x4,y4,df)
                 
-                # Almacenar los resultados en una lista de tuplas
-                resultados = [
-                    (namep1, minp1, polynamep1, x1,y1),
-                    (namep2, minp2, polynamep2, x2,y2),
-                    (namep3, minp3, polynamep3, x3,y3),
-                    (namep4, minp4, polynamep4, x4,y4)
-                ]
-
-                # Ordenar los resultados por el valor de minpx (segundo elemento de cada tupla)
-                resultados_ordenados = sorted(resultados, key=lambda x: x[1])
-
-                # Seleccionar los dos primeros elementos de la lista ordenada
-                dos_menores = resultados_ordenados[:2]
-
-                # Guardar los nombres y polynam de los dos menores
-                nombre_menor1, minp_menor1, polynam_menor1, xa, ya = dos_menores[0]
-                nombre_menor2, minp_menor2, polynam_menor2, xb, yb = dos_menores[1]
+                x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
                 
-
-                if nombre_menor1 != nombre_menor2:
-                    print("El polígono es distinto")
-                    # Buscar el con menor distancia
-                    if minp_menor1 < minp_menor2:
-                        nombre_menor2 = nombre_menor1
-                        print(f"El polígono menor es {nombre_menor1}")
-                        
-                    else:
-                        nombre_menor1 = nombre_menor2
-                        print("El polígono menor es {nombre_menor2}")
-                    
+                # Dibujar el polígono en la imagen original
+                lat1, lon1 = transform(utm_proj, latlon_proj, x1_utm, y1_utm)
+                lat2, lon2 = transform(utm_proj, latlon_proj, x2_utm, y2_utm)
+                lat3, lon3 = transform(utm_proj, latlon_proj, x3_utm, y3_utm)
+                lat4, lon4 = transform(utm_proj, latlon_proj, x4_utm, y4_utm)
                 
-                print(f"Nombre: {nombre_menor1}, Distancia: {minp_menor1}, Polynam: {polynam_menor1}")
-                print(f"Nombre: {nombre_menor2}, Distancia: {minp_menor2}, Polynam: {polynam_menor2}")
-                cv2.circle(img, (xa, ya), 3, (0, 255, 0), -1)
-                cv2.circle(img, (xb, yb), 3, (0, 255, 0), -1)
-                keypoint.append([xa, ya])
-                keypoint.append([xb, yb])
-                       
-        # Guardar la imagen con el polígono           
-        cv2.imwrite(f'results/{image_path[:-4]}.png', img)
-        
-        # 
+                yawKML = df['yaw'].mean()
+                print("El angulo del KML es: ", yawKML)
+                
+                yaw1 = anguloNorte(float(lon1), float(lat1), float(lon3), float(lon3))            
+                yaw2 = anguloNorte(float(lon2), float(lat1), float(lon4), float(lat4))
+                yawprom = (yaw1 + yaw2) / 2
+                print("El angulo del poligono es: ", yawprom)
+                
+                offset = int(yawKML - yawprom)
+                print("El offset-yaw es: ", offset)                       
