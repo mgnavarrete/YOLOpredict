@@ -82,6 +82,9 @@ latlon_proj = Proj(proj='latlong', ellps='WGS84')
 # Specify the file path of the CSV file
 csv_file_path = 'kmlTable.csv'
 
+
+if not os.path.exists(metadatanew_path):
+        os.mkdir(metadatanew_path)
 # Preprocesar coordenadas en el DataFrame
 print("Cargando datos de KML...")
 
