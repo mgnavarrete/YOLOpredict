@@ -36,9 +36,18 @@ for placemark in root.findall('.//kml:Placemark', namespaces):
     # Extracting polygon coordinates
     polygon = placemark.find('.//kml:Polygon', namespaces)
     polygon_coords = parse_polygon_coordinates(polygon)
+    polygon_coords = polygon_coords.split(" ")
+    polygon_coords = [x.split(",") for x in polygon_coords]
+    polygon_coords = [[float(x[0]), float(x[1])] for x in polygon_coords]
+    poly1 = polygon_coords[0]
+    poly2 = polygon_coords[1]
+    poly3 = polygon_coords[2]
+    poly4 = polygon_coords[3]
 
-    updated_data.append({'name': name, 'point': point, 'polygon': polygon_coords})
 
+    updated_data.append({'name': name, 'point': point, 'polyP1': f"{poly1[0]},{poly1[1]}", 'polyP2': f"{poly2[0]},{poly2[1]}", 'polyP3': f"{poly3[0]},{poly3[1]}", 'polyP4': f"{poly4[0]},{poly4[1]}"})
+
+print("Tabla de coordenadas creadas")
 # Creating an updated DataFrame
 updated_df = pd.DataFrame(updated_data)
 updated_df.head()  # Display the first few rows of the updated DataFrame to verify the data extraction
@@ -48,3 +57,4 @@ csv_file_path = 'kmlTable.csv'
 
 # Save the DataFrame to a CSV file
 updated_df.to_csv(csv_file_path, index=False)
+print("Archivo CSV creado")
