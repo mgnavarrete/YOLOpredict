@@ -38,21 +38,21 @@ def findClosest(x1,y1,df):
     return closest_name, min_distance, polyPname
 
 def anguloNorte(lat1, lon1, lat2, lon2):
-    # Convert latitude and longitude from degrees to radians
+    # Convierte latitud y longitud de grados a radianes
     lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
 
-    # Calculate the change in coordinates
+    # Calcula el cambio en las coordenadas
     dlon = lon2 - lon1
 
-    # Calculate the bearing
+    # Calcula el angulo
     x = np.sin(dlon) * np.cos(lat2)
     y = np.cos(lat1) * np.sin(lat2) - (np.sin(lat1) * np.cos(lat2) * np.cos(dlon))
     initial_bearing = np.arctan2(x, y)
 
-    # Convert bearing from radians to degrees
+    # Convierte el angulo de radianes a grados
     initial_bearing = np.degrees(initial_bearing)
 
-    # Normalize the bearing
+    # Normaliza el angulo
     bearing = (initial_bearing + 360) % 360
 
     return bearing
@@ -60,10 +60,10 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
 
 model_path = 'last.pt'
-folder_path = 'images/C2PP/original_img' # Folder containing images to be segmented example: images/1.JPEG
-geonp_path = 'images/C2PP/georef_numpy' # Folder containing georeferenced images example: images/1.npy
-metadata_path = 'images/C2PP/metadata' # Folder containing metadata files example: images/1.txt
-metadatanew_path = 'images/C2PP/metadata_yaw' # Folder containing metadata files example: images/1.txt
+folder_path = 'images/C2PP/original_img' # Carpeta que contiene las imágenes originales
+geonp_path = 'images/C2PP/georef_numpy' # Carpeta que contiene los archivos numpy georeferenciados
+metadata_path = 'images/C2PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
+metadatanew_path = 'images/C2PP/metadata_yaw' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
 img_names = os.listdir(folder_path)
 img_names.sort()
