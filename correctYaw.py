@@ -118,7 +118,7 @@ for image_path in img_names:
 
                 # Encontrar contornos
                 contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                #cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
                 if contours:
                     largest_contour = max(contours, key=cv2.contourArea)
 
@@ -167,7 +167,7 @@ for image_path in img_names:
         data = json.load(archivo)
 
     # Modifica el valor de "offset_yaw" con el número deseado
-    data['offset-yaw'] = offset_yaw
+    data['offset_yaw'] = offset_yaw
     print(f"El offset_yaw de {image_path}: {offset_yaw}")
     # Abre el archivo JSON en modo escritura
     with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
