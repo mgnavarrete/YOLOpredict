@@ -60,6 +60,7 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
 
 model_path = 'last.pt'
+
 folder_path = 'images/C2PP/original_img' # Carpeta que contiene las imágenes originales
 geonp_path = 'images/C2PP/georef_numpy' # Carpeta que contiene los archivos numpy georeferenciados
 metadata_path = 'images/C2PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
@@ -126,7 +127,7 @@ for image_path in img_names:
 
                 # Encontrar contornos
                 contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                #cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                # cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
                 if contours:
                     # Encuentra el contorno más grande
                     largest_contour = max(contours, key=cv2.contourArea)
@@ -176,7 +177,7 @@ for image_path in img_names:
                     yaw1 = anguloNorte(float(lon1), float(lat1), float(lon3), float(lat3))            
                     yaw2 = anguloNorte(float(lon2), float(lat2), float(lon4), float(lat4))
                     #print(f"angulo del poligono: {yaw1} y {yaw2}")
-                    yawprom = (yaw1 + yaw2) / 2
+                    yawprom = min(yaw1, yaw2)
 
                     offset = int(yawKML - yawprom)
                     yawList.append(offset)
@@ -186,7 +187,9 @@ for image_path in img_names:
     if len(yawList) == 0:
         offset_yaw = 0
     else:
-        offset_yaw = int(np.mean(yawList))   
+        # El menor de yawList es el que se toma         
+        offset_yaw = min(yawList)    
+          
     # Abre el archivo JSON en modo lectura
     with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
         data = json.load(archivo)
