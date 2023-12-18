@@ -60,11 +60,12 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
 
 model_path = 'last.pt'
+csv_file_path = 'test1/kmlTable.csv'
 
-folder_path = 'images/C2PP/original_img' # Carpeta que contiene las imágenes originales
-geonp_path = 'images/C2PP/georef_numpy' # Carpeta que contiene los archivos numpy georeferenciados
-metadata_path = 'images/C2PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
-metadatanew_path = 'images/C2PP/metadata_yaw' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
+folder_path = 'test1/TC13PP/original_img' # Carpeta que contiene las imágenes originales
+geonp_path = 'test1/TC13PP/georef_numpy' # Carpeta que contiene los archivos numpy georeferenciados
+metadata_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
+metadatanew_path = 'test1/TC13PP/metadata_yaw' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
 # folder_path = 'images/testImg' # Carpeta que contiene las imágenes originales
 # geonp_path = 'images/testNP' # Carpeta que contiene los archivos numpy georeferenciados
@@ -85,8 +86,6 @@ utm_proj = Proj(proj='utm', zone=zone_number, south=zone_letter > 'N', ellps='WG
 # Define la proyección de latitud/longitud
 latlon_proj = Proj(proj='latlong', ellps='WGS84')
 
-# Specify the file path of the CSV file
-csv_file_path = 'kmlTable.csv'
 
 
 if not os.path.exists(metadatanew_path):
@@ -176,25 +175,18 @@ for image_path in img_names:
                     
                     yaw1 = anguloNorte(float(lon1), float(lat1), float(lon3), float(lat3))            
                     yaw2 = anguloNorte(float(lon2), float(lat2), float(lon4), float(lat4))
-                    print(f"angulo del poligono: {yaw1} y {yaw2}")
+                    # print(f"angulo del poligono: {yaw1} y {yaw2}")
                     
-                    yaw1 = yawKML - yaw1
-                    yaw2 = yawKML - yaw2
-                    # Elejir el mas cerca a 0   
-                    if abs(yaw1) < abs(yaw2):
-                        yawprom = yaw1
-                    else:
-                        yawprom = yaw2
-
-                    yawList.append(yawprom)
+                    yaw = (yaw1 + yaw2)/2
+                    offset_yaw = yawKML - yaw
+                    yawList.append(offset_yaw)
                 
     # cv2.imwrite("results/"+ image_path, img)               
                 
     if len(yawList) == 0:
         offset_yaw = 0
     else:
-        # El mas cercano a 0 de yawlist
-        offset_yaw = min(yawList, key=abs)    
+        offset_yaw = np.mean(yawList)  
           
     # Abre el archivo JSON en modo lectura
     with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
