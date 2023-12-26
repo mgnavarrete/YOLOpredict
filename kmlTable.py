@@ -3,12 +3,21 @@ import pandas as pd
 import numpy as np
 
 # Load and parse the KML file
-file_path = 'test1/TC13_P_FEX.kml'
+file_path = 'FINISTERRAE PANELES/FINISTERRAE PANELES 50-55.kml'
 tree = ET.parse(file_path)
 root = tree.getroot()
 
 # Define namespaces to parse the KML file
 namespaces = {'kml': 'http://www.opengis.net/kml/2.2'}
+
+def calcular_centro_poligono(poly1, poly2, poly3, poly4):
+    lat_centro = (poly1[1] + poly2[1] + poly3[1] + poly4[1]) / 4
+    lon_centro = (poly1[0] + poly2[0] + poly3[0] + poly4[0]) / 4
+    return lat_centro, lon_centro
+
+def procesar_archivo_kml(file_path):
+    tree = ET.parse(file_path)
+    root = tree.getroot()
 
 # Function to parse coordinates string into latitude, longitude, and height
 def parse_coordinates(coord_str):
@@ -60,10 +69,6 @@ updated_data = []
 for placemark in root.findall('.//kml:Placemark', namespaces):
     name = placemark.find('.//kml:name', namespaces).text if placemark.find('.//kml:name', namespaces) is not None else "Unknown"
     
-    # Extracting point coordinates
-    point_coordinates = placemark.find('.//kml:Point/kml:coordinates', namespaces)
-    point = parse_coordinates(point_coordinates.text) if point_coordinates is not None else None
-
     # Extracting polygon coordinates
     polygon = placemark.find('.//kml:Polygon', namespaces)
     polygon_coords = parse_polygon_coordinates(polygon)
@@ -80,7 +85,14 @@ for placemark in root.findall('.//kml:Placemark', namespaces):
     poly2 = polygon_coords_sorted[0]  # Inferior Izquierda
     poly3 = polygon_coords_sorted[1]  # Inferior Derecha
 
-
+    # Extracting point coordinates
+    point_coordinates = placemark.find('.//kml:Point/kml:coordinates', namespaces)
+    if point_coordinates is not None:
+        point = parse_coordinates(point_coordinates.text)
+    else:
+        # Calcular el punto central si no hay un punto y sí un polígono
+        centro_lat, centro_lon = calcular_centro_poligono(poly1, poly2, poly3, poly4)
+        point = (centro_lat, centro_lon)
 
     # Calcular el ángulo para cada polígono
     yaw1 = anguloNorte(float(poly1[1]), float(poly1[0]), float(poly4[1]), float(poly4[0]))
