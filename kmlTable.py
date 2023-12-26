@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Load and parse the KML file
-file_path = 'PSN_Corregido.kml'
+file_path = 'test1/TC13_P_FEX.kml'
 tree = ET.parse(file_path)
 root = tree.getroot()
 
@@ -46,6 +46,14 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
     return bearing
 
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371  # Radio de la Tierra en kilómetros
+    dLat = np.radians(lat2 - lat1)
+    dLon = np.radians(lon2 - lon1)
+    a = np.sin(dLat/2) * np.sin(dLat/2) + np.cos(np.radians(lat1)) * np.cos(np.radians(lat2)) * np.sin(dLon/2) * np.sin(dLon/2)
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+    distance = R * c
+    return distance
 
 # Updated data extraction to include polygons
 updated_data = []
@@ -62,26 +70,39 @@ for placemark in root.findall('.//kml:Placemark', namespaces):
     polygon_coords = polygon_coords.split(" ")
     polygon_coords = [x.split(",") for x in polygon_coords]
     polygon_coords = [[float(x[0]), float(x[1])] for x in polygon_coords]
-    poly1 = polygon_coords[0]
-    poly2 = polygon_coords[1]
-    poly3 = polygon_coords[2]
-    poly4 = polygon_coords[3]
+
+    # Ordenar las coordenadas del polígono
+    polygon_coords_sorted = sorted(polygon_coords, key=lambda x: (x[1], x[0]))
+
+    # Asignar coordenadas a las variables según los puntos cardinales
+    poly1 = polygon_coords_sorted[3]  # Superior Izquierda
+    poly4 = polygon_coords_sorted[2]  # Superior Derecha
+    poly2 = polygon_coords_sorted[0]  # Inferior Izquierda
+    poly3 = polygon_coords_sorted[1]  # Inferior Derecha
+
 
 
     # Calcular el ángulo para cada polígono
-    yaw1 = anguloNorte(float(poly1[0]), float(poly1[1]), float(poly3[0]), float(poly3[1]))
-    yaw2 = anguloNorte(float(poly2[0]), float(poly2[1]), float(poly4[0]), float(poly4[1]))
+    yaw1 = anguloNorte(float(poly1[1]), float(poly1[0]), float(poly4[1]), float(poly4[0]))
+    yaw2 = anguloNorte(float(poly2[1]), float(poly2[0]), float(poly3[1]), float(poly3[0]))
 
     yawprom = (yaw1 + yaw2) / 2
 
+    # Calcular distancias y promedio
+    distancia1 = haversine_distance(poly1[1], poly1[0], poly2[1], poly2[0])
+    distancia2 = haversine_distance(poly3[1], poly3[0], poly4[1], poly4[0])
+    distancia_promedio = (distancia1 + distancia2) / 2
+
+
     updated_data.append({
         'name': name, 
-        'point': point, 
+        'point': f"{point[1]},{point[0]}", 
         'polyP1': f"{poly1[0]},{poly1[1]}", 
         'polyP2': f"{poly2[0]},{poly2[1]}", 
         'polyP3': f"{poly3[0]},{poly3[1]}", 
         'polyP4': f"{poly4[0]},{poly4[1]}",
-        'yaw': yawprom
+        'yaw': yawprom,
+        'ancho': distancia_promedio
     })
 print("Tabla de coordenadas creadas")
 # Creating an updated DataFrame
