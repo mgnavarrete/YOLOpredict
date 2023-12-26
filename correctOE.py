@@ -6,6 +6,9 @@ from pyproj import CRS, Transformer
 import pandas as pd
 import json 
 import math
+import tkinter as tk
+from tkinter import filedialog
+from glob import glob
 
 
 def haversine_distance(lat1, lon1, lat2, lon2):
@@ -122,10 +125,28 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 model_path = 'best.pt'
 csv_file_path = 'kmlTable.csv'
 
-folder_path = 'test1/TC13PP/original_img' # Carpeta que contiene las imágenes originales
-geonp_path = 'test1/TC13PP/georef_numpy' # Carpeta que contiene los archivos numpy georeferenciados
-metadata_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
-metadatanew_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
+
+
+# Iniciar Tkinter
+root = tk.Tk()
+root.withdraw()
+
+# Seleccionar el directorio raíz
+path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
+if not path_root:
+    raise Exception("No se seleccionó ningún directorio")
+
+# Construir rutas a los subdirectorios
+folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
+geonp_path = os.path.join(path_root, 'georef_numpy_old')  # Para archivos numpy georeferenciados
+metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
+metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
+
+
+# folder_path = 'test1/TC13PP/original_img' # Carpeta que contiene las imágenes originales
+# geonp_path = 'test1/TC13PP/georef_numpy' # Carpeta que contiene los archivos numpy georeferenciados
+# metadata_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
+# metadatanew_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
 # folder_path = 'images/testImg' # Carpeta que contiene las imágenes originales
 # geonp_path = 'images/testNPnew' # Carpeta que contiene los archivos numpy georeferenciados
