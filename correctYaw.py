@@ -139,6 +139,7 @@ if not path_root:
 
 # Construir rutas a los subdirectorios
 folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
+imgsFolder = os.path.join(path_root, 'cvat')
 geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
 metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
 metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
@@ -154,7 +155,7 @@ metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con
 # metadata_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos
 # metadatanew_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
-img_names = os.listdir(folder_path)
+img_names = os.listdir(imgsFolder)
 img_names.sort()
 
 
@@ -183,13 +184,14 @@ for col in ['polyP1', 'polyP2', 'polyP3', 'polyP4']:
     df[col] = df[col].apply(lambda x: tuple(map(float, x.split(','))))
 
 yawKML = df['yaw'].mean()
+yawKML = 180
 print("El angulo del KML es: ", yawKML)
 print("Datos cargados")
 
 print("Cargando modelo YOLO..")
 model = YOLO(model_path)
 print("Modelo cargado")
-
+masking = 0
 print("Iniciando análisis de imágenes...")  
 for image_path in img_names:
     keypoint = []
@@ -212,8 +214,8 @@ for image_path in img_names:
 
                 # Encontrar contornos
                 contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-                # cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                if masking >= 10:
+                    cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
                 if contours:
                     # Encuentra el contorno más grande
                     largest_contour = max(contours, key=cv2.contourArea)
@@ -272,8 +274,8 @@ for image_path in img_names:
                         lon4, lat4 = transformer.transform(x4_utm, y4_utm)
                         
                         # print(f"coordenadas del poligono: {lat1, lon1}, {lat2, lon2}, {lat3, lon3}, {lat4, lon4}")
-                        yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))          
-                        yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
+                        yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
+                        yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
                         # print(f"angulo del poligono: {yaw1} y {yaw2}")
                         
                         
@@ -282,9 +284,10 @@ for image_path in img_names:
                         # print(f"offset_yaw: {offset_yaw}")
                         yawList.append(offset_yaw1)
                         yawList.append(offset_yaw2)
-             
-    # cv2.imwrite("results/"+ image_path, img)     
-       
+    if masking >= 10:
+
+        cv2.imwrite("results/"+ image_path, img)
+    masking += 1
                 
     if len(yawList) == 0:
         offset_yaw = 0

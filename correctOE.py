@@ -138,7 +138,8 @@ if not path_root:
 
 # Construir rutas a los subdirectorios
 folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
-geonp_path = os.path.join(path_root, 'georef_numpy_old')  # Para archivos numpy georeferenciados
+imgsFolder = os.path.join(path_root, 'cvat')
+geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
 metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
 metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
 
@@ -153,7 +154,7 @@ metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con
 # metadata_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos
 # metadatanew_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
-img_names = os.listdir(folder_path)
+img_names = os.listdir(imgsFolder)
 img_names.sort()
 
 
