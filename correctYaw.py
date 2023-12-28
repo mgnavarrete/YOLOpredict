@@ -125,7 +125,7 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
 
 model_path = 'best.pt'
-csv_file_path = 'kmlTable.csv'
+csv_file_path = 'kmlTable_FIT.csv'
 
 
 # Iniciar Tkinter
