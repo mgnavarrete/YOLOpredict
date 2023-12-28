@@ -184,7 +184,7 @@ for col in ['polyP1', 'polyP2', 'polyP3', 'polyP4']:
     df[col] = df[col].apply(lambda x: tuple(map(float, x.split(','))))
 
 yawKML = df['yaw'].mean()
-yawKML = 180
+# yawKML = 180
 print("El angulo del KML es: ", yawKML)
 print("Datos cargados")
 
