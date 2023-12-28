@@ -6,7 +6,7 @@ import numpy as np
 list_file_path = ['FINISTERRAE PANELES/FINISTERRAE PANELES 1-3.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 4-11.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 12-20.kml',
                   'FINISTERRAE PANELES/FINISTERRAE PANELES 21-31.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 32-41.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 42-49.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 50-55.kml']
 new_data = []
-
+id = 1
 for file_path in list_file_path:
     tree = ET.parse(file_path)
     root = tree.getroot()
@@ -163,7 +163,7 @@ for file_path in list_file_path:
             
             # Crear la nueva fila
             new_row = {
-                'name': f"{updated_df.iloc[i]['name']}-{updated_df.iloc[i+3]['name']}",
+                'name': id,
                 'point': f"{centro_lon},{centro_lat}",
                 'polyP1': polyP1,
                 'polyP2': polyP2,
@@ -173,7 +173,7 @@ for file_path in list_file_path:
                 'ancho': distancia_promedio  # O calcular un nuevo ancho si es necesario
             }
             new_data.append(new_row)
-
+            id += 1
     # Crear el nuevo DataFrame
     new_df = pd.DataFrame(new_data)
     # Mostrar las primeras filas del nuevo DataFrame para verificar
