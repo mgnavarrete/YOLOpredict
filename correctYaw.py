@@ -191,7 +191,7 @@ print("Datos cargados")
 print("Cargando modelo YOLO..")
 model = YOLO(model_path)
 print("Modelo cargado")
-masking = 0
+masking = 10
 print("Iniciando análisis de imágenes...")  
 for image_path in img_names:
     keypoint = []
@@ -274,8 +274,8 @@ for image_path in img_names:
                         lon4, lat4 = transformer.transform(x4_utm, y4_utm)
                         
                         # print(f"coordenadas del poligono: {lat1, lon1}, {lat2, lon2}, {lat3, lon3}, {lat4, lon4}")
-                        yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
-                        yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
+                        yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
+                        yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
                         # print(f"angulo del poligono: {yaw1} y {yaw2}")
                         
                         
