@@ -132,179 +132,182 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
 
 
+list_folders = ['E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C36PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C39PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C40PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C41PP']
+
 model_path = 'best.pt'
 csv_file_path = 'kmlTable_FIT.csv'
 
-# Iniciar Tkinter
-root = tk.Tk()
-root.withdraw()
+for path_root in list_folders:
+    # # Iniciar Tkinter
+    # root = tk.Tk()
+    # root.withdraw()
 
-# Seleccionar el directorio raíz
-path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
-if not path_root:
-    raise Exception("No se seleccionó ningún directorio")
+    # Seleccionar el directorio raíz
+    # path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
+    # if not path_root:
+    #     raise Exception("No se seleccionó ningún directorio")
 
-# Construir rutas a los subdirectorios
-folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
-imgsFolder = os.path.join(path_root, 'cvat')
-geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
-metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
-metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
-
-
-
-
-# folder_path = 'test1/TC13PP/original_img' # Carpeta que contiene las imágenes originales
-# geonp_path = 'test1/TC13PP/georef_numpy' # Carpeta que contiene los archivos numpy georeferenciados
-# metadata_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
-# metadatanew_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
-
-# folder_path = 'images/testImg' # Carpeta que contiene las imágenes originales
-# geonp_path = 'images/testNPnew' # Carpeta que contiene los archivos numpy georeferenciados
-# metadata_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos
-# metadatanew_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
-
-img_names = os.listdir(imgsFolder)
-img_names.sort()
-
-
-zone_number = 19
-zone_letter = 'S'
-
-# Define la proyección UTM (incluyendo la zona y el hemisferio)
-utm_crs = CRS(f"+proj=utm +zone={zone_number} +{'+south' if zone_letter > 'N' else ''} +ellps=WGS84")
-
-# Define la proyección de latitud/longitud
-latlon_crs = CRS("EPSG:4326")
-
-# Crear un objeto Transformer para la transformación de coordenadas
-transformer = Transformer.from_crs(utm_crs, latlon_crs, always_xy=True)
-
-if not os.path.exists(metadatanew_path):
-        os.mkdir(metadatanew_path)
-# Preprocesar coordenadas en el DataFrame
-print("Cargando datos de KML...")
-
-df = pd.read_csv(csv_file_path)
-print("Datos cargados")
-
-ancho = df['ancho'].mean()
-print("El ancho de los paneles: ", ancho)
-
-
-print("Cargando modelo YOLO..")
-model = YOLO(model_path)
-print("Modelo cargado")
-
-print("Iniciando análisis de imágenes...")  
-# Crear un diccionario para mapear nombres a coordenadas de polyname
+    # Construir rutas a los subdirectorios
+    folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
+    imgsFolder = os.path.join(path_root, 'cvat')
+    geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
+    metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
+    metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
 
 
 
-coordenadas_dict = df.set_index('name').to_dict(orient='index')
-for image_path in img_names:
 
-    keypoint = []
-    
-    img = cv2.imread(folder_path + "/" + image_path)
+    # folder_path = 'test1/TC13PP/original_img' # Carpeta que contiene las imágenes originales
+    # geonp_path = 'test1/TC13PP/georef_numpy' # Carpeta que contiene los archivos numpy georeferenciados
+    # metadata_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
+    # metadatanew_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
-    H, W, _ = img.shape
-    img_resized = cv2.resize(img, (640, 640))
-    results = model(img_resized)
-    alturaList = []
-    for result in results:
-        if result.masks is not None:
-            for j, mask in enumerate(result.masks.data):
-                mask = mask.cpu().numpy() * 255
-                mask = cv2.resize(mask, (W, H))
-                img = cv2.resize(img, (W, H))
-                # Convertir la máscara a una imagen binaria
-                _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
+    # folder_path = 'images/testImg' # Carpeta que contiene las imágenes originales
+    # geonp_path = 'images/testNPnew' # Carpeta que contiene los archivos numpy georeferenciados
+    # metadata_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos
+    # metadatanew_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
-                # Encontrar contornos
-                contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-                # cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
-                if contours:
-                    # Encuentra el contorno más grande
-                    largest_contour = max(contours, key=cv2.contourArea)
+    img_names = os.listdir(imgsFolder)
+    img_names.sort()
 
-                    # Aproximación del polígono
-                    epsilon = 0.015* cv2.arcLength(largest_contour, True)
-                    approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
-                    approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
-                    approx_polygon = np.array(approx_polygon, dtype=int)
-                    
-                    # print(f"approx_polygon: {approx_polygon}")
-                    if len(approx_polygon) > 3:                
-                        # print(f"Procesando Imagen: {image_path}")
-                    
-                        x1 = approx_polygon[0][0][0]
-                        y1 = approx_polygon[0][0][1]
-                        x2 = approx_polygon[1][0][0]
-                        y2 = approx_polygon[1][0][1]
-                        x3 = approx_polygon[2][0][0]
-                        y3 = approx_polygon[2][0][1]
-                        x4 = approx_polygon[3][0][0]
-                        y4 = approx_polygon[3][0][1]
-                    
-                        puntos = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
-                        puntos_ordenados = ordenar_puntos(puntos)
-                        x1, y1 = puntos_ordenados[0]
-                        x2, y2 = puntos_ordenados[1]
-                        x3, y3 = puntos_ordenados[2]
-                        x4, y4 = puntos_ordenados[3]
-                    
-                        geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
 
-                        x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
-                        x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
-                        x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
-                        x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
-                        
-                        lon1, lat1 = transformer.transform(x1_utm, y1_utm)
-                        lon2, lat2 = transformer.transform(x2_utm, y2_utm)
-                        lon3, lat3 = transformer.transform(x3_utm, y3_utm)
-                        lon4, lat4 = transformer.transform(x4_utm, y4_utm)
-                        
-                        # Calcular ancho paneles
-                        ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
-                        ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
-                        
-                        avg_ancho = (ancho1 + ancho2) / 2
-                        # print(f"Ancho poly: {avg_ancho}")
-                        
-                        porcentaje = avg_ancho / ancho
-                        # print(f"Porcentaje: {porcentaje}")
-                        # alturaList.append(porcentaje)
-                        alturaList.append(ancho1/ancho)
-                        alturaList.append(ancho2/ancho)
-    
-    if len(alturaList) == 0:
-        offset_altura = 0
-    else:
-        offsetList = closest_values_sorted(alturaList, n=5)
-        # promdeio de los valores de alturaList
-        offset_altura = np.mean(offsetList)
-        
-    print(f"El offset_altura de {image_path}: {offset_altura}")    
-    # Abre el archivo JSON en modo lectura
-    with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
-        data = json.load(archivo)
+    zone_number = 19
+    zone_letter = 'S'
 
-    # Modifica el valor de "offset_yaw" con el número deseado
-    data['offset_altura'] = offset_altura
-    # print(f"El offset_yaw de {image_path}: {offset_yaw}")
-    # Abre el archivo JSON en modo escritura
-    with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
-        # Escribe el diccionario modificado de nuevo en el archivo JSON
-        json.dump(data, archivo, indent=4)
-    
-        
-    print("El valor de 'offset_altura' se ha modificado con éxito.")                  
-                        
-                        
-     
+    # Define la proyección UTM (incluyendo la zona y el hemisferio)
+    utm_crs = CRS(f"+proj=utm +zone={zone_number} +{'+south' if zone_letter > 'N' else ''} +ellps=WGS84")
+
+    # Define la proyección de latitud/longitud
+    latlon_crs = CRS("EPSG:4326")
+
+    # Crear un objeto Transformer para la transformación de coordenadas
+    transformer = Transformer.from_crs(utm_crs, latlon_crs, always_xy=True)
+
+    if not os.path.exists(metadatanew_path):
+            os.mkdir(metadatanew_path)
+    # Preprocesar coordenadas en el DataFrame
+    print("Cargando datos de KML...")
+
+    df = pd.read_csv(csv_file_path)
+    print("Datos cargados")
+
+    ancho = df['ancho'].mean()
+    print("El ancho de los paneles: ", ancho)
+
+
+    print("Cargando modelo YOLO..")
+    model = YOLO(model_path)
+    print("Modelo cargado")
+
+    print("Iniciando análisis de imágenes...")
+    # Crear un diccionario para mapear nombres a coordenadas de polyname
+
+
+
+    coordenadas_dict = df.set_index('name').to_dict(orient='index')
+    for image_path in img_names:
+
+        keypoint = []
+
+        img = cv2.imread(folder_path + "/" + image_path)
+
+        H, W, _ = img.shape
+        img_resized = cv2.resize(img, (640, 640))
+        results = model(img_resized)
+        alturaList = []
+        for result in results:
+            if result.masks is not None:
+                for j, mask in enumerate(result.masks.data):
+                    mask = mask.cpu().numpy() * 255
+                    mask = cv2.resize(mask, (W, H))
+                    img = cv2.resize(img, (W, H))
+                    # Convertir la máscara a una imagen binaria
+                    _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
+
+                    # Encontrar contornos
+                    contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                    # cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                    if contours:
+                        # Encuentra el contorno más grande
+                        largest_contour = max(contours, key=cv2.contourArea)
+
+                        # Aproximación del polígono
+                        epsilon = 0.015* cv2.arcLength(largest_contour, True)
+                        approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
+                        approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
+                        approx_polygon = np.array(approx_polygon, dtype=int)
+
+                        # print(f"approx_polygon: {approx_polygon}")
+                        if len(approx_polygon) > 3:
+                            # print(f"Procesando Imagen: {image_path}")
+
+                            x1 = approx_polygon[0][0][0]
+                            y1 = approx_polygon[0][0][1]
+                            x2 = approx_polygon[1][0][0]
+                            y2 = approx_polygon[1][0][1]
+                            x3 = approx_polygon[2][0][0]
+                            y3 = approx_polygon[2][0][1]
+                            x4 = approx_polygon[3][0][0]
+                            y4 = approx_polygon[3][0][1]
+
+                            puntos = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+                            puntos_ordenados = ordenar_puntos(puntos)
+                            x1, y1 = puntos_ordenados[0]
+                            x2, y2 = puntos_ordenados[1]
+                            x3, y3 = puntos_ordenados[2]
+                            x4, y4 = puntos_ordenados[3]
+
+                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+
+                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+
+                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+
+                            # Calcular ancho paneles
+                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+
+                            avg_ancho = (ancho1 + ancho2) / 2
+                            # print(f"Ancho poly: {avg_ancho}")
+
+                            porcentaje = avg_ancho / ancho
+                            # print(f"Porcentaje: {porcentaje}")
+                            # alturaList.append(porcentaje)
+                            alturaList.append(ancho1/ancho)
+                            alturaList.append(ancho2/ancho)
+
+        if len(alturaList) == 0:
+            offset_altura = 0
+        else:
+            offsetList = closest_values_sorted(alturaList, n=5)
+            # promdeio de los valores de alturaList
+            offset_altura = np.mean(offsetList)
+
+        print(f"El offset_altura de {image_path}: {offset_altura}")
+        # Abre el archivo JSON en modo lectura
+        with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
+            data = json.load(archivo)
+
+        # Modifica el valor de "offset_yaw" con el número deseado
+        data['offset_altura'] = offset_altura
+        # print(f"El offset_yaw de {image_path}: {offset_yaw}")
+        # Abre el archivo JSON en modo escritura
+        with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
+            # Escribe el diccionario modificado de nuevo en el archivo JSON
+            json.dump(data, archivo, indent=4)
+
+
+        print("El valor de 'offset_altura' se ha modificado con éxito.")
+
+
+
 
     
   

@@ -123,191 +123,192 @@ def anguloNorte(lat1, lon1, lat2, lon2):
     return bearing
 
 
+list_folders = ['E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C36PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C39PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C40PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C41PP']
 
 model_path = 'best.pt'
 csv_file_path = 'kmlTable_FIT.csv'
 
+for path_root in list_folders:
+    # Iniciar Tkinter
+    root = tk.Tk()
+    root.withdraw()
 
-# Iniciar Tkinter
-root = tk.Tk()
-root.withdraw()
+    # # Seleccionar el directorio raíz
+    # path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
+    # if not path_root:
+    #     raise Exception("No se seleccionó ningún directorio")
 
-# Seleccionar el directorio raíz
-path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
-if not path_root:
-    raise Exception("No se seleccionó ningún directorio")
-
-# Construir rutas a los subdirectorios
-folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
-imgsFolder = os.path.join(path_root, 'cvat')
-geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
-metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
-metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
-
-
-# folder_path = 'test1/TC13PP/original_img' # Carpeta que contiene las imágenes originales
-# geonp_path = 'test1/TC13PP/georef_numpy_old' # Carpeta que contiene los archivos numpy georeferenciados
-# metadata_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
-# metadatanew_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
-
-# folder_path = 'images/testImg' # Carpeta que contiene las imágenes originales
-# geonp_path = 'images/testNP' # Carpeta que contiene los archivos numpy georeferenciados
-# metadata_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos
-# metadatanew_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
-
-img_names = os.listdir(imgsFolder)
-img_names.sort()
+    # Construir rutas a los subdirectorios
+    folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
+    imgsFolder = os.path.join(path_root, 'cvat')
+    geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
+    metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
+    metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
 
 
-# Tus coordenadas UTM
-zone_number = 19
-zone_letter = 'S'
+    # folder_path = 'test1/TC13PP/original_img' # Carpeta que contiene las imágenes originales
+    # geonp_path = 'test1/TC13PP/georef_numpy_old' # Carpeta que contiene los archivos numpy georeferenciados
+    # metadata_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
+    # metadatanew_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
-# Define la proyección UTM (incluyendo la zona y el hemisferio)
-utm_crs = CRS(f"+proj=utm +zone={zone_number} +{'+south' if zone_letter > 'N' else ''} +ellps=WGS84")
+    # folder_path = 'images/testImg' # Carpeta que contiene las imágenes originales
+    # geonp_path = 'images/testNP' # Carpeta que contiene los archivos numpy georeferenciados
+    # metadata_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos
+    # metadatanew_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
-# Define la proyección de latitud/longitud
-latlon_crs = CRS("EPSG:4326")
-
-# Crear un objeto Transformer para la transformación de coordenadas
-transformer = Transformer.from_crs(utm_crs, latlon_crs, always_xy=True)
-
+    img_names = os.listdir(imgsFolder)
+    img_names.sort()
 
 
-if not os.path.exists(metadatanew_path):
-        os.mkdir(metadatanew_path)
-# Preprocesar coordenadas en el DataFrame
-print("Cargando datos de KML...")
+    # Tus coordenadas UTM
+    zone_number = 19
+    zone_letter = 'S'
 
-df = pd.read_csv(csv_file_path)
-for col in ['polyP1', 'polyP2', 'polyP3', 'polyP4']:
-    df[col] = df[col].apply(lambda x: tuple(map(float, x.split(','))))
+    # Define la proyección UTM (incluyendo la zona y el hemisferio)
+    utm_crs = CRS(f"+proj=utm +zone={zone_number} +{'+south' if zone_letter > 'N' else ''} +ellps=WGS84")
 
-yawKML = df['yaw'].mean()
-# yawKML = 180
-print("El angulo del KML es: ", yawKML)
-print("Datos cargados")
+    # Define la proyección de latitud/longitud
+    latlon_crs = CRS("EPSG:4326")
 
-print("Cargando modelo YOLO..")
-model = YOLO(model_path)
-print("Modelo cargado")
-masking = 10
-print("Iniciando análisis de imágenes...")  
-for image_path in img_names:
-    keypoint = []
-    
-    img = cv2.imread(folder_path + "/" + image_path)
+    # Crear un objeto Transformer para la transformación de coordenadas
+    transformer = Transformer.from_crs(utm_crs, latlon_crs, always_xy=True)
 
-    H, W, _ = img.shape
-    img_resized = cv2.resize(img, (640, 640))
-    results = model(img_resized)
-    yawList = []
-    yawArea = []
-    for result in results:
-        if result.masks is not None:
-            for j, mask in enumerate(result.masks.data):
-                mask = mask.cpu().numpy() * 255
-                mask = cv2.resize(mask, (W, H))
-                img = cv2.resize(img, (W, H))
-                # Convertir la máscara a una imagen binaria
-                _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
 
-                # Encontrar contornos
-                contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                if masking >= 10:
-                    cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
-                if contours:
-                    # Encuentra el contorno más grande
-                    largest_contour = max(contours, key=cv2.contourArea)
 
-                    # Aproximación del polígono
-                    epsilon = 0.015* cv2.arcLength(largest_contour, True)
-                    approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
-                    approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
-                    approx_polygon = np.array(approx_polygon, dtype=int)
-                    
-                    # print(f"approx_polygon: {approx_polygon}")
-                    if len(approx_polygon) > 3:                
-                        # print(f"Procesando Imagen: {image_path}")
-                    
-                        x1 = approx_polygon[0][0][0]
-                        y1 = approx_polygon[0][0][1]
-                        x2 = approx_polygon[1][0][0]
-                        y2 = approx_polygon[1][0][1]
-                        x3 = approx_polygon[2][0][0]
-                        y3 = approx_polygon[2][0][1]
-                        x4 = approx_polygon[3][0][0]
-                        y4 = approx_polygon[3][0][1]
-                    
-                        puntos = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
-                        puntos_ordenados = ordenar_puntos(puntos)
-                        x1, y1 = puntos_ordenados[0]
-                        x2, y2 = puntos_ordenados[1]
-                        x3, y3 = puntos_ordenados[2]
-                        x4, y4 = puntos_ordenados[3]
-                        
+    if not os.path.exists(metadatanew_path):
+            os.mkdir(metadatanew_path)
+    # Preprocesar coordenadas en el DataFrame
+    print("Cargando datos de KML...")
 
-                        # Convertir a formato numpy
-                        puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
-                        puntos_np = puntos_np.reshape((-1, 1, 2))
-                        cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
-    
-                        cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
-                        cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
-                        cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
-                        cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
-                        
-                        
+    df = pd.read_csv(csv_file_path)
+    for col in ['polyP1', 'polyP2', 'polyP3', 'polyP4']:
+        df[col] = df[col].apply(lambda x: tuple(map(float, x.split(','))))
 
-                        geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
-                        
-                        x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
-                        x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
-                        x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
-                        x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
-                        # print(f"coordenadas del poligono: {x1_utm, y1_utm}, {x2_utm, y2_utm}, {x3_utm, y3_utm}, {x4_utm, y4_utm}")
-                        
-                        # Dibujar el polígono en la imagen original
-                        lon1, lat1 = transformer.transform(x1_utm, y1_utm)
-                        lon2, lat2 = transformer.transform(x2_utm, y2_utm)
-                        lon3, lat3 = transformer.transform(x3_utm, y3_utm)
-                        lon4, lat4 = transformer.transform(x4_utm, y4_utm)
-                        
-                        # print(f"coordenadas del poligono: {lat1, lon1}, {lat2, lon2}, {lat3, lon3}, {lat4, lon4}")
-                        yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
-                        yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
-                        # print(f"angulo del poligono: {yaw1} y {yaw2}")
-                        
-                        
-                        offset_yaw1 = yawKML - yaw1
-                        offset_yaw2 = yawKML - yaw2
-                        # print(f"offset_yaw: {offset_yaw}")
-                        yawList.append(offset_yaw1)
-                        yawList.append(offset_yaw2)
-    if masking >= 10:
+    yawKML = df['yaw'].mean()
+    # yawKML = 180
+    print("El angulo del KML es: ", yawKML)
+    print("Datos cargados")
 
-        cv2.imwrite("results/"+ image_path, img)
-    masking += 1
-                
-    if len(yawList) == 0:
-        offset_yaw = 0
-    else:
-        offsetList = closest_values_sorted(yawList, n=5)
-        # promdeio de los valores de yawList
-        offset_yaw = np.mean(offsetList)
-        
-    print(f"El offset_yaw de {image_path}: {offset_yaw}")    
-    # Abre el archivo JSON en modo lectura
-    with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
-        data = json.load(archivo)
+    print("Cargando modelo YOLO..")
+    model = YOLO(model_path)
+    print("Modelo cargado")
+    masking = 10
+    print("Iniciando análisis de imágenes...")
+    for image_path in img_names:
+        keypoint = []
 
-    # Modifica el valor de "offset_yaw" con el número deseado
-    data['offset_yaw'] = offset_yaw
-    # print(f"El offset_yaw de {image_path}: {offset_yaw}")
-    # Abre el archivo JSON en modo escritura
-    with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
-        # Escribe el diccionario modificado de nuevo en el archivo JSON
-        json.dump(data, archivo, indent=4)
-    
-        
-    print("El valor de 'offset_yaw' se ha modificado con éxito.")  
+        img = cv2.imread(folder_path + "/" + image_path)
+
+        H, W, _ = img.shape
+        img_resized = cv2.resize(img, (640, 640))
+        results = model(img_resized)
+        yawList = []
+        yawArea = []
+        for result in results:
+            if result.masks is not None:
+                for j, mask in enumerate(result.masks.data):
+                    mask = mask.cpu().numpy() * 255
+                    mask = cv2.resize(mask, (W, H))
+                    img = cv2.resize(img, (W, H))
+                    # Convertir la máscara a una imagen binaria
+                    _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
+
+                    # Encontrar contornos
+                    contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    if masking >= 10:
+                        cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                    if contours:
+                        # Encuentra el contorno más grande
+                        largest_contour = max(contours, key=cv2.contourArea)
+
+                        # Aproximación del polígono
+                        epsilon = 0.015* cv2.arcLength(largest_contour, True)
+                        approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
+                        approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
+                        approx_polygon = np.array(approx_polygon, dtype=int)
+
+                        # print(f"approx_polygon: {approx_polygon}")
+                        if len(approx_polygon) > 3:
+                            # print(f"Procesando Imagen: {image_path}")
+
+                            x1 = approx_polygon[0][0][0]
+                            y1 = approx_polygon[0][0][1]
+                            x2 = approx_polygon[1][0][0]
+                            y2 = approx_polygon[1][0][1]
+                            x3 = approx_polygon[2][0][0]
+                            y3 = approx_polygon[2][0][1]
+                            x4 = approx_polygon[3][0][0]
+                            y4 = approx_polygon[3][0][1]
+
+                            puntos = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+                            puntos_ordenados = ordenar_puntos(puntos)
+                            x1, y1 = puntos_ordenados[0]
+                            x2, y2 = puntos_ordenados[1]
+                            x3, y3 = puntos_ordenados[2]
+                            x4, y4 = puntos_ordenados[3]
+
+
+                            # Convertir a formato numpy
+                            puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
+                            puntos_np = puntos_np.reshape((-1, 1, 2))
+                            cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
+
+                            cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
+                            cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
+                            cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
+                            cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
+
+
+
+                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+
+                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+                            # print(f"coordenadas del poligono: {x1_utm, y1_utm}, {x2_utm, y2_utm}, {x3_utm, y3_utm}, {x4_utm, y4_utm}")
+
+                            # Dibujar el polígono en la imagen original
+                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+
+                            # print(f"coordenadas del poligono: {lat1, lon1}, {lat2, lon2}, {lat3, lon3}, {lat4, lon4}")
+                            yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
+                            yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
+                            # print(f"angulo del poligono: {yaw1} y {yaw2}")
+
+
+                            offset_yaw1 = yawKML - yaw1
+                            offset_yaw2 = yawKML - yaw2
+                            # print(f"offset_yaw: {offset_yaw}")
+                            yawList.append(offset_yaw1)
+                            yawList.append(offset_yaw2)
+        if masking >= 10:
+
+            cv2.imwrite("results/"+ image_path, img)
+        masking += 1
+
+        if len(yawList) == 0:
+            offset_yaw = 0
+        else:
+            offsetList = closest_values_sorted(yawList, n=5)
+            # promdeio de los valores de yawList
+            offset_yaw = np.mean(offsetList)
+
+        print(f"El offset_yaw de {image_path}: {offset_yaw}")
+        # Abre el archivo JSON en modo lectura
+        with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
+            data = json.load(archivo)
+
+        # Modifica el valor de "offset_yaw" con el número deseado
+        data['offset_yaw'] = offset_yaw
+        # print(f"El offset_yaw de {image_path}: {offset_yaw}")
+        # Abre el archivo JSON en modo escritura
+        with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
+            # Escribe el diccionario modificado de nuevo en el archivo JSON
+            json.dump(data, archivo, indent=4)
+
+
+        print("El valor de 'offset_yaw' se ha modificado con éxito.")
