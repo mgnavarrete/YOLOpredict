@@ -122,26 +122,30 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
     return bearing
 
+# Función para seleccionar múltiples directorios
+def select_directories():
+    path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
+    while path_root:
+        list_folders.append(path_root)
+        path_root = filedialog.askdirectory(title='Seleccione otro directorio o cancele para continuar')
+    if not list_folders:
+        raise Exception("No se seleccionó ningún directorio")
 
-list_folders = ['E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C36PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C39PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C40PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C41PP']
 
-# list_images = ['FIT_C36_V02_DJI_0031_T_20231216111041.JPG', 'FIT_C36_V02_DJI_0683_T_20231216112301.JPG', 'FIT_C36_V02_DJI_0447_T_20231216111831.JPG',
-#                'FIT_C36_V02_DJI_0445_T_20231216111828.JPG', 'FIT_C36_V02_DJI_0449_T_20231216111833.JPG', 'FIT_C36_V02_DJI_0681_T_20231216112259.JPG', 
-#                'FIT_C36_V02_DJI_0685_T_20231216112303.JPG', 'FIT_C36_V02_DJI_0029_T_20231216111038.JPG', 'FIT_C36_V02_DJI_0033_T_20231216111043.JPG']
+list_folders = []
 list_images = []
 model_path = 'best.pt'
 csv_file_path = 'kmlTable_FIT.csv'
 
+# Iniciar Tkinter
+root = tk.Tk()
+root.withdraw()
+
+# Llamar a la función para seleccionar directorios
+select_directories()
+
 for path_root in list_folders:
-        # Iniciar Tkinter
-    # root = tk.Tk()
-    # root.withdraw()
-
-    # Seleccionar el directorio raíz
-    # path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
-    # if not path_root:
-    #     raise Exception("No se seleccionó ningún directorio")
-
+    print(f"Procesando Carpeta:{path_root}")
     # Construir rutas a los subdirectorios
     folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
     imgsFolder = os.path.join(path_root, 'cvat')
@@ -322,3 +326,6 @@ for path_root in list_folders:
 
 
         print("El valor de 'offset_yaw' se ha modificado con éxito.")
+    print(f"Carpeta {path_root} OK")
+
+print("Todas la carpetas OK")

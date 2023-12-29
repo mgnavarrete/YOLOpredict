@@ -130,22 +130,30 @@ def anguloNorte(lat1, lon1, lat2, lon2):
     return bearing
 
 
+# Función para seleccionar múltiples directorios
+def select_directories():
+    path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
+    while path_root:
+        list_folders.append(path_root)
+        path_root = filedialog.askdirectory(title='Seleccione otro directorio o cancele para continuar')
+    if not list_folders:
+        raise Exception("No se seleccionó ningún directorio")
 
-list_folders = ['E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C36PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C39PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C40PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C41PP']
 
+list_folders = []
+list_images = []
 model_path = 'best.pt'
 csv_file_path = 'kmlTable_FIT.csv'
 
+# Iniciar Tkinter
+root = tk.Tk()
+root.withdraw()
+
+# Llamar a la función para seleccionar directorios
+select_directories()
+
 for path_root in list_folders:
     print(f"Procesando Carpeta:{path_root}")
-    # # Iniciar Tkinter
-    # root = tk.Tk()
-    # root.withdraw()
-    #
-    # # Seleccionar el directorio raíz
-    # path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
-    # if not path_root:
-    #     raise Exception("No se seleccionó ningún directorio")
 
     # Construir rutas a los subdirectorios
     folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
