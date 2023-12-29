@@ -267,39 +267,40 @@ for path_root in list_folders:
                             x3, y3 = puntos_ordenados[2]
                             x4, y4 = puntos_ordenados[3]
 
+                            area = calcular_area_poligono(puntos_ordenados)
+                            if area > 15000:
+                                # Convertir a formato numpy
+                                puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
+                                puntos_np = puntos_np.reshape((-1, 1, 2))
 
-                            # Convertir a formato numpy
-                            puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
-                            puntos_np = puntos_np.reshape((-1, 1, 2))
+                                xc = int(round((x1 + x2 + x3 + x4) / 4))
+                                yc = int(round((y1 + y2 + y3 + y4) / 4))
+                                # cv2.circle(img, (xc, yc), 5, (0, 0, 255), -1)
+                                geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
 
-                            xc = int(round((x1 + x2 + x3 + x4) / 4))
-                            yc = int(round((y1 + y2 + y3 + y4) / 4))
-                            # cv2.circle(img, (xc, yc), 5, (0, 0, 255), -1)
-                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+                                x_utm, y_utm = geoImg[yc][xc][0], geoImg[yc][xc][1]
+                                lonImg, latImg = transformer.transform(x_utm, y_utm)
 
-                            x_utm, y_utm = geoImg[yc][xc][0], geoImg[yc][xc][1]
-                            lonImg, latImg = transformer.transform(x_utm, y_utm)
+                                oeList.append([xc, yc, lonImg, latImg])
 
-                            oeList.append([xc, yc, lonImg, latImg])
+                                x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                                x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                                x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                                x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
 
-                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
-                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
-                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
-                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+                                lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                                lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                                lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                                lon4, lat4 = transformer.transform(x4_utm, y4_utm)
 
-                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
-                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
-                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
-                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+                                # Calcular ancho paneles
+                                ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                                ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
 
-                            # Calcular ancho paneles
-                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
-                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                                avg_ancho = (ancho1 + ancho2) / 2
+                                # print(f"Ancho poly: {avg_ancho}")
 
-                            avg_ancho = (ancho1 + ancho2) / 2
-                            # print(f"Ancho poly: {avg_ancho}")
-
-                            offset_poly = ancho - avg_ancho
+                                offset_poly = ancho - avg_ancho
 
         if len(oeList) > 0:
             # Calcular el promedio de las lonitudes

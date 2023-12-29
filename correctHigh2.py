@@ -266,31 +266,34 @@ for path_root in list_folders:
                             x2, y2 = puntos_ordenados[1]
                             x3, y3 = puntos_ordenados[2]
                             x4, y4 = puntos_ordenados[3]
+                            
+                            area = calcular_area_poligono(puntos_ordenados)
+                            if area > 15000:
 
-                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+                                geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
 
-                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
-                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
-                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
-                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+                                x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                                x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                                x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                                x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
 
-                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
-                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
-                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
-                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+                                lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                                lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                                lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                                lon4, lat4 = transformer.transform(x4_utm, y4_utm)
 
-                            # Calcular ancho paneles
-                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
-                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                                # Calcular ancho paneles
+                                ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                                ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
 
-                            avg_ancho = (ancho1 + ancho2) / 2
-                            # print(f"Ancho poly: {avg_ancho}")
+                                avg_ancho = (ancho1 + ancho2) / 2
+                                # print(f"Ancho poly: {avg_ancho}")
 
-                            porcentaje = avg_ancho / ancho
-                            # print(f"Porcentaje: {porcentaje}")
-                            # alturaList.append(porcentaje)
-                            alturaList.append(ancho1/ancho)
-                            alturaList.append(ancho2/ancho)
+                                porcentaje = avg_ancho / ancho
+                                # print(f"Porcentaje: {porcentaje}")
+                                # alturaList.append(porcentaje)
+                                alturaList.append(ancho1/ancho)
+                                alturaList.append(ancho2/ancho)
 
         if len(alturaList) == 0:
             offset_altura = 0
