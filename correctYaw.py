@@ -125,15 +125,19 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
 list_folders = ['E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C36PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C39PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C40PP', 'E:\ProcesamientoEnel_2023-12\Imagenes\Plantas\FIT\C41PP']
 
+# list_images = ['FIT_C36_V02_DJI_0031_T_20231216111041.JPG', 'FIT_C36_V02_DJI_0683_T_20231216112301.JPG', 'FIT_C36_V02_DJI_0447_T_20231216111831.JPG',
+#                'FIT_C36_V02_DJI_0445_T_20231216111828.JPG', 'FIT_C36_V02_DJI_0449_T_20231216111833.JPG', 'FIT_C36_V02_DJI_0681_T_20231216112259.JPG', 
+#                'FIT_C36_V02_DJI_0685_T_20231216112303.JPG', 'FIT_C36_V02_DJI_0029_T_20231216111038.JPG', 'FIT_C36_V02_DJI_0033_T_20231216111043.JPG']
+list_images = []
 model_path = 'best.pt'
 csv_file_path = 'kmlTable_FIT.csv'
 
 for path_root in list_folders:
-    # Iniciar Tkinter
-    root = tk.Tk()
-    root.withdraw()
+        # Iniciar Tkinter
+    # root = tk.Tk()
+    # root.withdraw()
 
-    # # Seleccionar el directorio raíz
+    # Seleccionar el directorio raíz
     # path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
     # if not path_root:
     #     raise Exception("No se seleccionó ningún directorio")
@@ -215,7 +219,7 @@ for path_root in list_folders:
 
                     # Encontrar contornos
                     contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                    if masking >= 10:
+                    if image_path in list_images:
                         cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
                     if contours:
                         # Encuentra el contorno más grande
@@ -247,45 +251,51 @@ for path_root in list_folders:
                             x3, y3 = puntos_ordenados[2]
                             x4, y4 = puntos_ordenados[3]
 
+                            area = calcular_area_poligono(puntos_ordenados)
+                            if image_path in list_images:
+                                print(f"area: {area}")
+                            if area > 15000:
+                                # Convertir a formato numpy
+                                puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
+                                puntos_np = puntos_np.reshape((-1, 1, 2))
+                                cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
 
-                            # Convertir a formato numpy
-                            puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
-                            puntos_np = puntos_np.reshape((-1, 1, 2))
-                            cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
-
-                            cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
-                            cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
-                            cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
-                            cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
-
-
-
-                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
-
-                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
-                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
-                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
-                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
-                            # print(f"coordenadas del poligono: {x1_utm, y1_utm}, {x2_utm, y2_utm}, {x3_utm, y3_utm}, {x4_utm, y4_utm}")
-
-                            # Dibujar el polígono en la imagen original
-                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
-                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
-                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
-                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
-
-                            # print(f"coordenadas del poligono: {lat1, lon1}, {lat2, lon2}, {lat3, lon3}, {lat4, lon4}")
-                            yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
-                            yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
-                            # print(f"angulo del poligono: {yaw1} y {yaw2}")
+                                cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
+                                cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
+                                cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
+                                cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
 
 
-                            offset_yaw1 = yawKML - yaw1
-                            offset_yaw2 = yawKML - yaw2
-                            # print(f"offset_yaw: {offset_yaw}")
-                            yawList.append(offset_yaw1)
-                            yawList.append(offset_yaw2)
-        if masking >= 10:
+
+                                geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+
+                                x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                                x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                                x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                                x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+                                # print(f"coordenadas del poligono: {x1_utm, y1_utm}, {x2_utm, y2_utm}, {x3_utm, y3_utm}, {x4_utm, y4_utm}")
+
+                                # Dibujar el polígono en la imagen original
+                                lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                                lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                                lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                                lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+
+                                # print(f"coordenadas del poligono: {lat1, lon1}, {lat2, lon2}, {lat3, lon3}, {lat4, lon4}")
+                                # yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
+                                # yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
+                                
+                                yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
+                                yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
+                                
+
+
+                                offset_yaw1 = yawKML - yaw1
+                                offset_yaw2 = yawKML - yaw2
+                                # print(f"offset_yaw: {offset_yaw}")
+                                yawList.append(offset_yaw1)
+                                yawList.append(offset_yaw2)
+        if image_path in list_images:
 
             cv2.imwrite("results/"+ image_path, img)
         masking += 1
