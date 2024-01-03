@@ -258,7 +258,7 @@ for path_root in list_folders:
                             area = calcular_area_poligono(puntos_ordenados)
                             if image_path in list_images:
                                 print(f"area: {area}")
-                            if area > 15000:
+                            if area > 30000:
                                 # Convertir a formato numpy
                                 puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
                                 puntos_np = puntos_np.reshape((-1, 1, 2))
@@ -286,11 +286,11 @@ for path_root in list_folders:
                                 lon4, lat4 = transformer.transform(x4_utm, y4_utm)
 
                                 # print(f"coordenadas del poligono: {lat1, lon1}, {lat2, lon2}, {lat3, lon3}, {lat4, lon4}")
-                                # yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
-                                # yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
+                                yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
+                                yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
                                 
-                                yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
-                                yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
+                                #yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
+                                #yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
                                 
 
 

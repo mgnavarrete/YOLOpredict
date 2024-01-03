@@ -268,7 +268,7 @@ for path_root in list_folders:
                             x4, y4 = puntos_ordenados[3]
                             
                             area = calcular_area_poligono(puntos_ordenados)
-                            if area > 15000:
+                            if area > 10000:
 
                                 geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
 
