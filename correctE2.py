@@ -44,14 +44,14 @@ def centroide(puntos):
     y = sum(punto[1] for punto in puntos) / len(puntos)
     return x, y
 
-def angulo_con_respecto_al_centro(punto, centro):
-    return math.atan2(punto[1] - centro[1], punto[0] - centro[0])
+# def angulo_con_respecto_al_centro(punto, centro):
+#     return math.atan2(punto[1] - centro[1], punto[0] - centro[0])
 
-def ordenar_puntos(puntos):
-    centro = centroide(puntos)
-    puntos = sorted(puntos, key=lambda punto: angulo_con_respecto_al_centro(punto, centro))
+# def ordenar_puntos(puntos):
+#     centro = centroide(puntos)
+#     puntos = sorted(puntos, key=lambda punto: angulo_con_respecto_al_centro(punto, centro))
 
-    return [puntos[0], puntos[2], puntos[1], puntos[3]]
+#     return [puntos[0], puntos[2], puntos[1], puntos[3]]
 
 def ordenar_puntos(puntos):
     # Ordenar los puntos basándose en su coordenada x
@@ -143,14 +143,22 @@ def select_directories():
 list_folders = []
 list_images = ["FIT_C41_V13_DJI_20231216020920_0256_T_20231216020920.JPG","FIT_C41_V13_DJI_20231216020920_0255_T_20231216020920.JPG","FIT_C41_V13_DJI_20231216020357_0062_T_20231216020357.JPG","FIT_C41_V10_DJI_20231216014044_0154_T_20231216014044.JPG","FIT_C41_V10_DJI_20231216014045_0155_T_20231216014045.JPG", "FIT_C41_V08_DJI_20231216013559_0021_T_20231216013559.JPG"]
 model_path = 'best.pt'
-csv_file_path = 'kmlTable_FIT.csv'
+
 
 # Iniciar Tkinter
 root = tk.Tk()
 root.withdraw()
 
+print("Seleccione la tabla KML...")
+csv_file_path = filedialog.askopenfile(title='Seleccione Tabla KML')
+if not csv_file_path:
+        raise Exception("No se seleccionó ningúna Tabla KML")
+print("Tabla KML seleccionada")
+
 # Llamar a la función para seleccionar directorios
+print("Seleccione el directorio raíz...")
 select_directories()
+print("Directorio raíz seleccionado")
 
 for path_root in list_folders:
     print(f"Procesando Carpeta:{path_root}")
@@ -189,7 +197,7 @@ for path_root in list_folders:
     print("Cargando modelo YOLO..")
     model = YOLO(model_path)
     print("Modelo cargado")
-
+    ancho = df['ancho'].mean()
     print("Iniciando análisis de imágenes...")
     # Crear un diccionario para mapear nombres a coordenadas de polyname
 
@@ -225,25 +233,34 @@ for path_root in list_folders:
                         largest_contour = max(contours, key=cv2.contourArea)
 
                         # Aproximación del polígono
-                        epsilon = 0.05* cv2.arcLength(largest_contour, True)
+                        epsilon = 0.015* cv2.arcLength(largest_contour, True)
                         approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
                         approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
                         approx_polygon = np.array(approx_polygon, dtype=int)
 
                         # print(f"approx_polygon: {approx_polygon}")
                         if len(approx_polygon) > 3:
-                            # print(f"Procesando Imagen: {image_path}"
+                            # Obtén las dimensiones de la imagen
+                            H, W, _ = img.shape
+
+                            # Asegúrate de que las coordenadas estén dentro de los límites de la imagen
                             x, y, w, h = cv2.boundingRect(largest_contour)
+
+                            # Ajusta las coordenadas para asegurarte de que no excedan las dimensiones de la imagen
+                            x = max(0, min(x, W - 1))
+                            y = max(0, min(y, H - 1))
+                            w = max(0, min(w, W - x))
+                            h = max(0, min(h, H - y))
+
+                            # Calcula los puntos del rectángulo
                             approx_polygon = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=int)
-                            print(approx_polygon)
-                            x1 = approx_polygon[0][0]
-                            y1 = approx_polygon[0][1]
-                            x2 = approx_polygon[1][0]
-                            y2 = approx_polygon[1][1]
-                            x3 = approx_polygon[2][0]
-                            y3 = approx_polygon[2][1]
-                            x4 = approx_polygon[3][0]
-                            y4 = approx_polygon[3][1]
+
+                            # Extrae las coordenadas individuales, asegurándote de que estén dentro de los límites de la imagen
+                            x1, y1 = max(0, min(approx_polygon[0][0], W - 1)), max(0, min(approx_polygon[0][1], H - 1))
+                            x2, y2 = max(0, min(approx_polygon[1][0], W - 1)), max(0, min(approx_polygon[1][1], H - 1))
+                            x3, y3 = max(0, min(approx_polygon[2][0], W - 1)), max(0, min(approx_polygon[2][1], H - 1))
+                            x4, y4 = max(0, min(approx_polygon[3][0], W - 1)), max(0, min(approx_polygon[3][1], H - 1))
+
 
                             puntos = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
                             puntos_ordenados = ordenar_puntos(puntos)
@@ -252,22 +269,29 @@ for path_root in list_folders:
                             x3, y3 = puntos_ordenados[2]
                             x4, y4 = puntos_ordenados[3]
                             
-                            # Calcular distancia entre puntos 1 y 2 y 3 y 4 en pixeles
-                            distancia1 = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-                            distancia2 = math.sqrt((x4 - x3)**2 + (y4 - y3)**2)
-                            
-                            print(f"distancia1: {distancia1}")
-                            print(f"distancia2: {distancia2}")
-                            # Calcular el promedio de las distancias
-                            avg_distancia = (distancia1 + distancia2) / 2
-                            print(f"avg_distancia: {avg_distancia}")
-                   
+                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
 
-                            
+                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+
+                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+
+                            # Calcular ancho paneles
+                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+
+                            avg_ancho = (ancho1 + ancho2) / 2
+
+                            dif_ancho = abs(ancho - avg_ancho)
+                            # print(f"dif_ancho: {dif_ancho}")
+
                             area = calcular_area_poligono(puntos_ordenados)
-                            if image_path in list_images:
-                                print(f"area: {area}")
-                            if area > 1000 or avg_distancia > 66:
+                            if dif_ancho < 0.001 and area > 20000:
                                 # Convertir a formato numpy
                                 puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
                                 puntos_np = puntos_np.reshape((-1, 1, 2))
@@ -285,168 +309,33 @@ for path_root in list_folders:
 
                                 x_utm, y_utm = geoImg[yc][xc][0], geoImg[yc][xc][1]
                                 lonImg, latImg = transformer.transform(x_utm, y_utm)
+                                
+                                namep1, minp1, polynamep1 = findClosest(xc,yc,df,'point')
+                                lonKML, latKML= coordenadas_dict[namep1][polynamep1].split(",")
+                                lonKML, latKML = float(lonKML), float(latKML)
+                                diff_lon = lonKML - lonImg
+                                
+                                # Earth's circumference along the equator in kilometers
+                                earth_circumference_km = 40075.0
 
-                                oeList.append([xc, yc, lonImg, latImg])
+                                # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
+                                offset_km = diff_lon * (earth_circumference_km / 360)
+                             
+
+                                # Convert kilometers to meters
+                                offset_poly = offset_km * 1000
+                             
+                                oeList.append(offset_poly)
                                 # cv2.imwrite(f"results/{image_path[:-4]}_E.png", img)
                                 
 
 
         if len(oeList) > 0:
-            # Calcular el promedio de las lonitudes
-            promedio_lon = sum([c[2] for c in oeList]) / len(oeList)
 
-            # Dividir los centroides en dos grupos
-            grupo_arriba = [c for c in oeList if c[2] < promedio_lon]
-            grupo_abajo = [c for c in oeList if c[2] >= promedio_lon]
-            print(f"Grupo arriba: {grupo_arriba}")
-            print(f"Grupo abajo: {grupo_abajo}")
+            offset_list = closest_values_sorted(oeList, n=5)
             
-            if len(grupo_arriba) > 0 and len(grupo_abajo) > 0:
-                print("Ambos grupos tienen elementos")
-                for i in grupo_abajo:
-                    x ,y,_,_ = i
-                    cv2.circle(img, (x, y), 5, (0, 0, 255), -1)
-                for i in grupo_arriba:
-                    x ,y,_,_ = i
-                    cv2.circle(img, (x, y), 5, (0, 255, 0), -1)
+            offset_oe = sum(offset_list) / len(offset_list)
 
-                # Calcular el centroide para cada grupo
-                centroide_grupo_arriba = calcular_centroide([(c[0], c[1]) for c in grupo_arriba])
-                centroide_grupo_abajo = calcular_centroide([(c[0], c[1]) for c in grupo_abajo])
-
-                #dibujar linea entre centroides
-                cv2.line(img, centroide_grupo_arriba, centroide_grupo_abajo, (255, 255, 255), 2)
-
-                # Dibujar los centroides en la imagen
-                cv2.circle(img, centroide_grupo_arriba, 5, (255, 255, 0), -1)
-                cv2.circle(img, centroide_grupo_abajo, 5, (255, 0, 255), -1)
-
-                xu, yu = centroide_grupo_arriba
-                xd, yd = centroide_grupo_abajo
-                xu_utm, yu_utm = geoImg[yu][xu][0], geoImg[yu][xu][1]
-                xd_utm, yd_utm = geoImg[yd][xd][0], geoImg[yd][xd][1]
-                lonu, latu = transformer.transform(xu_utm, yu_utm)
-                lond, latd = transformer.transform(xd_utm, yd_utm)
-
-
-                # Calcular Distancia entre centroides
-                distancia = haversine_distance(latu, lonu, latd, lond)
-
-
-                namep1, minp1, polynamep1 = findClosest(xu,yu,df,'point')
-                namep2, minp2, polynamep2 = findClosest(xd,yd,df, 'point')
-
-                # Obtener lon y lat directamente del diccionario
-                lonKMLu, latKMLu= coordenadas_dict[namep1][polynamep1].split(",")
-                lonKMLd, latKMLd= coordenadas_dict[namep2][polynamep2].split(",")
-
-                lonKMLu, latKMLu = float(lonKMLu), float(latKMLu)
-                lonKMLd, latKMLd = float(lonKMLd), float(latKMLd)
-
-
-                # Calcular la diferencia de longitud y la distancia este-oeste
-                diff_lonu = lonKMLu - lonu
-                diff_lond = lonKMLd - lond
-                # Earth's circumference along the equator in kilometers
-                earth_circumference_km = 40075.0
-
-                # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
-                offset_kmu = diff_lonu * (earth_circumference_km / 360)
-                offset_kmd = diff_lond * (earth_circumference_km / 360)
-
-                # Convert kilometers to meters
-                offset_polyu = offset_kmu * 1000
-                offset_polyd = offset_kmd * 1000
-
-                offset_oe = (offset_polyu + offset_polyd)/2
-
-            # Condición cuando solo el grupo de arriba tiene elementos
-            elif len(grupo_arriba) > 0 and len(grupo_abajo) <= 0:
-                print("Solo el grupo de arriba tiene elementos")
-
-                for i in grupo_arriba:
-                    x ,y,_,_ = i
-                    cv2.circle(img, (x, y), 5, (0, 255, 0), -1)
-
-                # Calcular el centroide para cada grupo
-                centroide_grupo_arriba = calcular_centroide([(c[0], c[1]) for c in grupo_arriba])
-
-                xu, yu = centroide_grupo_arriba
-
-                xu_utm, yu_utm = geoImg[yu][xu][0], geoImg[yu][xu][1]
-
-                lonu, latu = transformer.transform(xu_utm, yu_utm)
-
-
-                namep1, minp1, polynamep1 = findClosest(xu,yu,df,'point')
-
-
-                # Obtener lon y lat directamente del diccionario
-                lonKMLu, latKMLu= coordenadas_dict[namep1][polynamep1].split(",")
-
-
-                lonKMLu, latKMLu = float(lonKMLu), float(latKMLu)
-
-
-
-                # Calcular la diferencia de longitud y la distancia este-oeste
-                diff_lonu = lonKMLu - lonu
-
-                # Earth's circumference along the equator in kilometers
-                earth_circumference_km = 40075.0
-
-                # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
-                offset_kmu = diff_lonu * (earth_circumference_km / 360)
-
-                # Convert kilometers to meters
-                offset_polyu = offset_kmu * 1000
-
-                offset_oe = offset_polyu
-
-            # Condición cuando solo el grupo de abajo tiene elementos
-            elif len(grupo_arriba) <= 0 and len(grupo_abajo) > 0:
-                print("Solo el grupo de abajo tiene elementos")
-
-                for i in grupo_abajo:
-                    x ,y,_,_ = i
-                    cv2.circle(img, (x, y), 5, (0, 0, 255), -1)
-
-
-                # Calcular el centroide para cada grupo
-                centroide_grupo_abajo = calcular_centroide([(c[0], c[1]) for c in grupo_abajo])
-
-
-
-                xd, yd = centroide_grupo_abajo
-
-                xd_utm, yd_utm = geoImg[yd][xd][0], geoImg[yd][xd][1]
-
-                lond, latd = transformer.transform(xd_utm, yd_utm)
-
-                namep2, minp2, polynamep2 = findClosest(xd,yd,df, 'point')
-
-                # Obtener lon y lat directamente del diccionario
-                lonKMLd, latKMLd= coordenadas_dict[namep2][polynamep2].split(",")
-
-                lonKMLd, latKMLd = float(lonKMLd), float(latKMLd)
-
-
-                # Calcular la diferencia de longitud y la distancia este-oeste
-                diff_lond = lonKMLd - lond
-                # Earth's circumference along the equator in kilometers
-                earth_circumference_km = 40075.0
-
-                # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
-                offset_kmd = diff_lond * (earth_circumference_km / 360)
-
-                # Convert kilometers to meters
-                offset_polyd = offset_kmd * 1000
-
-                offset_oe = offset_polyd
-
-
-            else:
-                offset_oe = 0
         else:
             offset_oe = 0
 

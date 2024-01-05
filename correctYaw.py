@@ -135,14 +135,22 @@ def select_directories():
 list_folders = []
 list_images = []
 model_path = 'best.pt'
-csv_file_path = 'kmlTable_FIT.csv'
+
 
 # Iniciar Tkinter
 root = tk.Tk()
 root.withdraw()
 
+print("Seleccione la tabla KML...")
+csv_file_path = filedialog.askopenfile(title='Seleccione Tabla KML')
+if not csv_file_path:
+        raise Exception("No se seleccionó ningúna Tabla KML")
+print("Tabla KML seleccionada")
+
 # Llamar a la función para seleccionar directorios
+print("Seleccione el directorio raíz...")
 select_directories()
+print("Directorio raíz seleccionado")
 
 for path_root in list_folders:
     print(f"Procesando Carpeta:{path_root}")
@@ -152,17 +160,6 @@ for path_root in list_folders:
     geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
     metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
     metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
-
-
-    # folder_path = 'test1/TC13PP/original_img' # Carpeta que contiene las imágenes originales
-    # geonp_path = 'test1/TC13PP/georef_numpy_old' # Carpeta que contiene los archivos numpy georeferenciados
-    # metadata_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos
-    # metadatanew_path = 'test1/TC13PP/metadata' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
-
-    # folder_path = 'images/testImg' # Carpeta que contiene las imágenes originales
-    # geonp_path = 'images/testNP' # Carpeta que contiene los archivos numpy georeferenciados
-    # metadata_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos
-    # metadatanew_path = 'images/testMD' # Carpeta que contiene los archivos JSON de metadatos con el offset_yaw modificado
 
     img_names = os.listdir(imgsFolder)
     img_names.sort()
@@ -196,7 +193,7 @@ for path_root in list_folders:
     # yawKML = 180
     print("El angulo del KML es: ", yawKML)
     print("Datos cargados")
-
+    ancho = df['ancho'].mean()
     print("Cargando modelo YOLO..")
     model = YOLO(model_path)
     print("Modelo cargado")
@@ -237,8 +234,55 @@ for path_root in list_folders:
 
                         # print(f"approx_polygon: {approx_polygon}")
                         if len(approx_polygon) > 3:
-                            # print(f"Procesando Imagen: {image_path}")
+                            H, W, _ = img.shape
 
+                            # Asegúrate de que las coordenadas estén dentro de los límites de la imagen
+                            x, y, w, h = cv2.boundingRect(largest_contour)
+
+                            # Ajusta las coordenadas para asegurarte de que no excedan las dimensiones de la imagen
+                            x = max(0, min(x, W - 1))
+                            y = max(0, min(y, H - 1))
+                            w = max(0, min(w, W - x))
+                            h = max(0, min(h, H - y))
+                            
+                            approx_rec = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=int)
+                            # Extrae las coordenadas individuales, asegurándote de que estén dentro de los límites de la imagen
+                            x1, y1 = max(0, min(approx_rec[0][0], W - 1)), max(0, min(approx_rec[0][1], H - 1))
+                            x2, y2 = max(0, min(approx_rec[1][0], W - 1)), max(0, min(approx_rec[1][1], H - 1))
+                            x3, y3 = max(0, min(approx_rec[2][0], W - 1)), max(0, min(approx_rec[2][1], H - 1))
+                            x4, y4 = max(0, min(approx_rec[3][0], W - 1)), max(0, min(approx_rec[3][1], H - 1))
+
+
+                            puntosr = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+                            puntos_ordenadosr = ordenar_puntos(puntosr)
+                            x1, y1 = puntos_ordenadosr[0]
+                            x2, y2 = puntos_ordenadosr[1]
+                            x3, y3 = puntos_ordenadosr[2]
+                            x4, y4 = puntos_ordenadosr[3]
+                            
+                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+
+                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+
+                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+
+                            # Calcular ancho paneles
+                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+
+                            avg_ancho = (ancho1 + ancho2) / 2
+                            
+                            
+                            dif_ancho = abs(ancho - avg_ancho)
+                            print(f"dif_ancho: {dif_ancho}")
+                            
+                            
                             x1 = approx_polygon[0][0][0]
                             y1 = approx_polygon[0][0][1]
                             x2 = approx_polygon[1][0][0]
@@ -256,9 +300,7 @@ for path_root in list_folders:
                             x4, y4 = puntos_ordenados[3]
 
                             area = calcular_area_poligono(puntos_ordenados)
-                            if image_path in list_images:
-                                print(f"area: {area}")
-                            if area > 30000:
+                            if dif_ancho < 0.0006 and area > 20000:
                                 # Convertir a formato numpy
                                 puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
                                 puntos_np = puntos_np.reshape((-1, 1, 2))
@@ -307,7 +349,7 @@ for path_root in list_folders:
         if len(yawList) == 0:
             offset_yaw = 0
         else:
-            offsetList = closest_values_sorted(yawList, n=5)
+            offsetList = closest_values_sorted(yawList, n=2)
             # promdeio de los valores de yawList
             offset_yaw = np.mean(offsetList)
 

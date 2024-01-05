@@ -11,8 +11,6 @@ import tkinter as tk
 from tkinter import filedialog
 from glob import glob
 
-
-
 def haversine_distance(lat1, lon1, lat2, lon2):
     R = 6371  # Radio de la Tierra en kilómetros
     dLat = np.radians(lat2 - lat1)
@@ -21,14 +19,6 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
     distance = R * c
     return distance
-
-
-def calcular_centroide(puntos):
-    suma_x = sum(p[0] for p in puntos)
-    suma_y = sum(p[1] for p in puntos)
-    count = len(puntos)
-    return (int(round(suma_x / count)), int(round(suma_y / count)))
-
 
 def calcular_area_poligono(puntos):
     n = len(puntos)
@@ -48,7 +38,7 @@ def centroide(puntos):
 def angulo_con_respecto_al_centro(punto, centro):
     return math.atan2(punto[1] - centro[1], punto[0] - centro[0])
 
-def ordenar_puntos(puntos):
+def ordenar_puntos_dis(puntos):
     centro = centroide(puntos)
     puntos = sorted(puntos, key=lambda punto: angulo_con_respecto_al_centro(punto, centro))
 
@@ -87,8 +77,12 @@ def findClosest(x1, y1, df, poly):
     closest_row = df.loc[df['distance'].idxmin()]
     closest_name = closest_row['name']
     min_distance = closest_row['distance']
+    p1 = closest_row['polyP1']
+    p2 = closest_row['polyP2']
+    p3 = closest_row['polyP3']
+    p4 = closest_row['polyP4']
 
-    return closest_name, min_distance, poly
+    return closest_name, p1, p2, p3, p4
 
 def closest_values_sorted(lst, n=3):
     if len(lst) < n:
@@ -130,11 +124,8 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
     return bearing
 
-
-
 # Función para seleccionar múltiples directorios
 def select_directories():
-    
     path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
     while path_root:
         list_folders.append(path_root)
@@ -143,14 +134,15 @@ def select_directories():
         raise Exception("No se seleccionó ningún directorio")
 
 
-list_folders = []
-list_images = []
-model_path = 'best.pt'
 
 
 # Iniciar Tkinter
 root = tk.Tk()
 root.withdraw()
+list_folders = []
+list_images = []
+model_path = 'best.pt'
+
 
 print("Seleccione la tabla KML...")
 csv_file_path = filedialog.askopenfile(title='Seleccione Tabla KML')
@@ -176,6 +168,7 @@ for path_root in list_folders:
     img_names.sort()
 
 
+    # Tus coordenadas UTM
     zone_number = 19
     zone_letter = 'S'
 
@@ -188,30 +181,28 @@ for path_root in list_folders:
     # Crear un objeto Transformer para la transformación de coordenadas
     transformer = Transformer.from_crs(utm_crs, latlon_crs, always_xy=True)
 
+
+
     if not os.path.exists(metadatanew_path):
             os.mkdir(metadatanew_path)
     # Preprocesar coordenadas en el DataFrame
     print("Cargando datos de KML...")
 
     df = pd.read_csv(csv_file_path)
+    for col in ['polyP1', 'polyP2', 'polyP3', 'polyP4']:
+        df[col] = df[col].apply(lambda x: tuple(map(float, x.split(','))))
+
+    yawKML = df['yaw'].mean()
+    # yawKML = 180
+    print("El angulo del KML es: ", yawKML)
     print("Datos cargados")
-
     ancho = df['ancho'].mean()
-    print("El ancho de los paneles: ", ancho)
-
-
     print("Cargando modelo YOLO..")
     model = YOLO(model_path)
     print("Modelo cargado")
-
+    masking = 10
     print("Iniciando análisis de imágenes...")
-    # Crear un diccionario para mapear nombres a coordenadas de polyname
-
-
-
-    coordenadas_dict = df.set_index('name').to_dict(orient='index')
     for image_path in img_names:
-
         keypoint = []
 
         img = cv2.imread(folder_path + "/" + image_path)
@@ -219,7 +210,8 @@ for path_root in list_folders:
         H, W, _ = img.shape
         img_resized = cv2.resize(img, (640, 640))
         results = model(img_resized)
-        alturaList = []
+        yawList = []
+        yawArea = []
         for result in results:
             if result.masks is not None:
                 for j, mask in enumerate(result.masks.data):
@@ -231,8 +223,8 @@ for path_root in list_folders:
 
                     # Encontrar contornos
                     contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-                    # cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                    if image_path in list_images:
+                        cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
                     if contours:
                         # Encuentra el contorno más grande
                         largest_contour = max(contours, key=cv2.contourArea)
@@ -311,48 +303,83 @@ for path_root in list_folders:
                             x4, y4 = puntos_ordenados[3]
 
                             area = calcular_area_poligono(puntos_ordenados)
-                            # print(f"area: {area}")
                             if dif_ancho < 0.0009 and area > 10000:
+                                # Convertir a formato numpy
+                                puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
+                                puntos_np = puntos_np.reshape((-1, 1, 2))
+                                cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
+
+                                xc = int(round((x1 + x2 + x3 + x4) / 4))
+                                yc = int(round((y1 + y2 + y3 + y4) / 4))
+                                cv2.circle(img, (xc, yc), 5, (255, 255, 255), -1)
+                                cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
+                                cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
+                                cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
+                                cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
+
+
 
                                 geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
-
+                                x_utm, y_utm = geoImg[yc][xc][0], geoImg[yc][xc][1]
+                                lonImg, latImg = transformer.transform(x_utm, y_utm)
+                                
+                                name, p1, p2, p3, p4 = findClosest(xc,yc,df,'point')
+                                lonKML1, latKML1 = p1[0], p1[1]
+                                lonKML2, latKML2 = p2[0], p2[1]
+                                lonKML3, latKML3 = p3[0], p3[1]
+                                lonKML4, latKML4 = p4[0], p4[1]
+                                # print(f"coordenadas del KML: {latKML1, lonKML1}, {latKML2, lonKML2}, {latKML3, lonKML3}, {latKML4, lonKML4}")
+                                
+                                
+                                
                                 x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
                                 x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
                                 x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
                                 x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+                                # print(f"coordenadas del poligono: {x1_utm, y1_utm}, {x2_utm, y2_utm}, {x3_utm, y3_utm}, {x4_utm, y4_utm}")
 
+                                # Dibujar el polígono en la imagen original
                                 lon1, lat1 = transformer.transform(x1_utm, y1_utm)
                                 lon2, lat2 = transformer.transform(x2_utm, y2_utm)
                                 lon3, lat3 = transformer.transform(x3_utm, y3_utm)
                                 lon4, lat4 = transformer.transform(x4_utm, y4_utm)
 
-                                # Calcular ancho paneles
-                                ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
-                                ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                                # print(f"coordenadas del poligono: {lat1, lon1}, {lat2, lon2}, {lat3, lon3}, {lat4, lon4}")
+                                yawKML1 = anguloNorte(float(latKML1), float(lonKML1), float(latKML2), float(lonKML2))
+                                yawKML2 = anguloNorte(float(latKML4), float(lonKML4), float(latKML3), float(lonKML3))
+                            
+                                yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
+                                yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
+                                
+                                #yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
+                                #yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
+                                
 
-                                avg_ancho = (ancho1 + ancho2) / 2
-                                # print(f"Ancho poly: {avg_ancho}")
 
-                                porcentaje = avg_ancho / ancho
-                                # print(f"Porcentaje: {porcentaje}")
-                                # alturaList.append(porcentaje)
-                                alturaList.append(ancho1/ancho)
-                                alturaList.append(ancho2/ancho)
+                                offset_yaw1 = yawKML1 - yaw1
+                                offset_yaw2 = yawKML2 - yaw2
+                                # print(f"offset_yaw: {offset_yaw}")
+                                yawList.append(offset_yaw1)
+                                yawList.append(offset_yaw2)
+        if image_path in list_images:
 
-        if len(alturaList) == 0:
-            offset_altura = 0
+            cv2.imwrite("results/"+ image_path, img)
+        masking += 1
+
+        if len(yawList) == 0:
+            offset_yaw = 0
         else:
-            offsetList = closest_values_sorted(alturaList, n=5)
-            # promdeio de los valores de alturaList
-            offset_altura = np.mean(offsetList)
+            offsetList = closest_values_sorted(yawList, n=5)
+            # promdeio de los valores de yawList
+            offset_yaw = np.mean(offsetList)
 
-        print(f"El offset_altura de {image_path}: {offset_altura}")
+        print(f"El offset_yaw de {image_path}: {offset_yaw}")
         # Abre el archivo JSON en modo lectura
         with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
             data = json.load(archivo)
 
         # Modifica el valor de "offset_yaw" con el número deseado
-        data['offset_altura'] = offset_altura
+        data['offset_yaw'] = offset_yaw
         # print(f"El offset_yaw de {image_path}: {offset_yaw}")
         # Abre el archivo JSON en modo escritura
         with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
@@ -360,12 +387,7 @@ for path_root in list_folders:
             json.dump(data, archivo, indent=4)
 
 
-        print("El valor de 'offset_altura' se ha modificado con éxito.")
+        print("El valor de 'offset_yaw' se ha modificado con éxito.")
     print(f"Carpeta {path_root} OK")
 
 print("Todas la carpetas OK")
-
-
-
-    
-  

@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Load and parse the KML file
-file_path = 'PSN_Corregido.kml'
+file_path = 'test1/TC13_P_FEX.kml'
 tree = ET.parse(file_path)
 root = tree.getroot()
 
