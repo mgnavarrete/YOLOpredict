@@ -280,7 +280,7 @@ for path_root in list_folders:
                             
                             
                             dif_ancho = abs(ancho - avg_ancho)
-                            print(f"dif_ancho: {dif_ancho}")
+                            # print(f"dif_ancho: {dif_ancho}")
                             
                             
                             x1 = approx_polygon[0][0][0]
@@ -300,7 +300,7 @@ for path_root in list_folders:
                             x4, y4 = puntos_ordenados[3]
 
                             area = calcular_area_poligono(puntos_ordenados)
-                            if dif_ancho < 0.0006 and area > 20000:
+                            if dif_ancho < 0.001:
                                 # Convertir a formato numpy
                                 puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
                                 puntos_np = puntos_np.reshape((-1, 1, 2))
@@ -349,7 +349,7 @@ for path_root in list_folders:
         if len(yawList) == 0:
             offset_yaw = 0
         else:
-            offsetList = closest_values_sorted(yawList, n=2)
+            offsetList = closest_values_sorted(yawList, n=5)
             # promdeio de los valores de yawList
             offset_yaw = np.mean(offsetList)
 
