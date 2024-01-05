@@ -288,11 +288,12 @@ for path_root in list_folders:
                             avg_ancho = (ancho1 + ancho2) / 2
 
                             dif_ancho = abs(ancho - avg_ancho)
-                            # print(f"dif_ancho: {dif_ancho}")
+                            print(f"dif_ancho: {dif_ancho}")
 
                             area = calcular_area_poligono(puntos_ordenados)
                             # area >= 20000 para eliminar los contornos pequeños
-                            if dif_ancho < 0.001 and area > 0:
+                            if dif_ancho < 0.002 and area > 0:
+                                print("Procesando E")
                                 # Convertir a formato numpy
                                 puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
                                 puntos_np = puntos_np.reshape((-1, 1, 2))
