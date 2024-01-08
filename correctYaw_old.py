@@ -124,7 +124,8 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
 
 # Función para seleccionar múltiples directorios
-def select_directories():
+def select_directories(list_folders=[]):
+    
     path_root = filedialog.askdirectory(title='Seleccione el directorio raíz')
     while path_root:
         list_folders.append(path_root)
@@ -150,7 +151,7 @@ print("Tabla KML seleccionada")
 
 # Llamar a la función para seleccionar directorios
 print("Seleccione el directorio raíz...")
-select_directories()
+list_folders = select_directories()
 print("Directorio raíz seleccionado")
 
 for path_root in list_folders:
