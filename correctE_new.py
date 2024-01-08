@@ -297,7 +297,6 @@ for path_root in list_folders:
                             # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
                             offset_km = diff_lon * (earth_circumference_km / 360)
                             
-
                             # Convert kilometers to meters
                             offset_poly = offset_km * 1000
                             
@@ -308,7 +307,7 @@ for path_root in list_folders:
 
         if len(oeList) > 0:
 
-            offset_list = closest_values_sorted(oeList, n=5)
+            offset_list = closest_values_sorted(oeList, n=2)
             
             offset_oe = sum(offset_list) / len(offset_list)
 

@@ -5,7 +5,7 @@ import numpy as np
 # Load and parse the KML file
 # list_file_path = ['FINISTERRAE PANELES/FINISTERRAE PANELES 1-3.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 4-11.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 12-20.kml',
 #                   'FINISTERRAE PANELES/FINISTERRAE PANELES 21-31.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 32-41.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 42-49.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 50-55.kml']
-list_file_path = ['FINISTERRAE PANELES/FINISTERRAE PANELES 32-41.kml']
+list_file_path = ['FINISTERRAE PANELES/FINISTERRAE PANELES 21-31.kml']
 
 new_data = []
 id = 1
@@ -182,7 +182,7 @@ for file_path in list_file_path:
     new_df.head()
 
 # Specify the file path for the CSV file
-csv_file_path = 'kmlTable_FIT_32-41.csv'
+csv_file_path = 'kmlTable_FIT_21-32.csv'
 
 # Save the DataFrame to a CSV file
 new_df.to_csv(csv_file_path, index=False)
