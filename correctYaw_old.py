@@ -132,6 +132,8 @@ def select_directories(list_folders=[]):
         path_root = filedialog.askdirectory(title='Seleccione otro directorio o cancele para continuar')
     if not list_folders:
         raise Exception("No se seleccionó ningún directorio")
+    
+    return list_folders
 
 
 
