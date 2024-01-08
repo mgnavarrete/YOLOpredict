@@ -139,8 +139,6 @@ def select_directories(list_folders=[]):
 
 model_path = 'best.pt'
 
-
-
 # Iniciar Tkinter
 root = tk.Tk()
 root.withdraw()

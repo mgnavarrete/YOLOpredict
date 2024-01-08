@@ -235,7 +235,7 @@ for path_root in list_folders:
                             # print(f"Procesando Imagen: {image_path}"
                             x, y, w, h = cv2.boundingRect(largest_contour)
                             approx_polygon = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=int)
-                            print(approx_polygon)
+                    
                             x1 = approx_polygon[0][0]
                             y1 = approx_polygon[0][1]
                             x2 = approx_polygon[1][0]

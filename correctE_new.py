@@ -287,7 +287,7 @@ for path_root in list_folders:
                         
 
                             namep1, minp1, polynamep1 = findClosest(centro_lat, centro_lon,df,'point')
-                            lonKML, latKML= coordenadas_dict[namep1][polynamep1].split(",")
+                            lonKML, latKML= coordenadas_dict[namep1]['point'].split(",")
                             lonKML, latKML = float(lonKML), float(latKML)
                             diff_lon = lonKML - centro_lon
                             
