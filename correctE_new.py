@@ -78,11 +78,8 @@ def split_poly_into_lat_lon(df, poly_column):
     return df
 
 # Tu función findClosest modificada
-def findClosest(x1, y1, df, poly):
+def findClosest(lat, lon, df, poly):
     df = split_poly_into_lat_lon(df,poly)
-    x_utm, y_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
-    lon, lat = transformer.transform(x_utm, y_utm)
-
     # Calcula la distancia usando una función vectorizada
     df['distance'] = df.apply(lambda row: haversine_distance(lat, lon, row['lat'], row['lon']), axis=1)
 
@@ -285,41 +282,14 @@ for path_root in list_folders:
                             lon3, lat3 = transformer.transform(x3_utm, y3_utm)
                             lon4, lat4 = transformer.transform(x4_utm, y4_utm)
 
-                            # Calcular ancho paneles
-                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
-                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
-
-                            avg_ancho = (ancho1 + ancho2) / 2
-
-                            dif_ancho = abs(ancho - avg_ancho)
-                            print(f"dif_ancho: {dif_ancho}")
-
-                            area = calcular_area_poligono(puntos_ordenados)
-                            # # area >= 20000 para eliminar los contornos pequeños
-                            # if dif_ancho < 0.002 and area > 0:
-                            print("Procesando E")
-                            # Convertir a formato numpy
-                            puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
-                            puntos_np = puntos_np.reshape((-1, 1, 2))
-
-                            xc = int(round((x1 + x2 + x3 + x4) / 4))
-                            yc = int(round((y1 + y2 + y3 + y4) / 4))
-                            cv2.circle(img, (xc, yc), 5, (255, 255, 255), -1)
-                            cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
-                            cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
-                            cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
-                            cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
-                            cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
+                            # Calcular el centro
+                            centro_lat, centro_lon = calcular_centro_poligono([lon1, lat1], [lon2, lat2], [lon3, lat3], [lon4, lat4])
                         
-                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
 
-                            x_utm, y_utm = geoImg[yc][xc][0], geoImg[yc][xc][1]
-                            lonImg, latImg = transformer.transform(x_utm, y_utm)
-                            
-                            namep1, minp1, polynamep1 = findClosest(xc,yc,df,'point')
+                            namep1, minp1, polynamep1 = findClosest(centro_lat, centro_lon,df,'point')
                             lonKML, latKML= coordenadas_dict[namep1][polynamep1].split(",")
                             lonKML, latKML = float(lonKML), float(latKML)
-                            diff_lon = lonKML - lonImg
+                            diff_lon = lonKML - centro_lon
                             
                             # Earth's circumference along the equator in kilometers
                             earth_circumference_km = 40075.0
