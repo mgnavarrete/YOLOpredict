@@ -282,16 +282,19 @@ def correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_pa
                                 yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
                                 yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
                                 
-                                if yaw1 > 170 or yaw1 < -170 or yaw2 > 170 or yaw2 < -170 or inverse:
-                                    inverse = True
+                                if inverse:
                                     yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
                                     yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
-                                
-
-
+                                    
                                 offset_yaw1 = yawKML - yaw1
                                 offset_yaw2 = yawKML - yaw2
                                 # print(f"offset_yaw: {offset_yaw}")
+                                if offset_yaw1 > 170 or offset_yaw1 < -170 or offset_yaw2 > 170 or offset_yaw2 < -170:
+                                    inverse = True
+                                    yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
+                                    yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
+                                    offset_yaw1 = yawKML - yaw1
+                                offset_yaw2 = yawKML - yaw2
                                 yawList.append(offset_yaw1)
                                 yawList.append(offset_yaw2)
                                 
