@@ -58,6 +58,7 @@ if __name__ == '__main__':
         df[col] = df[col].apply(lambda x: tuple(map(float, x.split(','))))
 
     yawKML = df['yaw'].mean()
+    ancho = df['ancho'].mean()
     
     print("Cargando modelo YOLO..")
     model = YOLO(model_path)
@@ -98,7 +99,7 @@ if __name__ == '__main__':
         saveGeoM(img_names, metadata_path, geonp_path, path_root)   
         correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
         saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-        correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, list_images)
+        correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images)
         saveGeoM(img_names, metadata_path, geonp_path, path_root)   
         
 

@@ -146,7 +146,7 @@ def select_directories():
     if not list_folders:
         raise Exception("No se seleccionó ningún directorio")
 
-def correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML,list_images):
+def correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images):
     for image_path in tqdm(img_names, desc="Calculando Offset Yaw"):
         
 
@@ -378,7 +378,7 @@ if __name__ == '__main__':
         print("Iniciando análisis de imágenes...")
         
         
-        correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML)
+        correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images)
             
 
     print("Todas la carpetas OK")
