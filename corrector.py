@@ -1,4 +1,5 @@
 from correctScripts.correctH import correctH
+from correctScripts.correctE import correctE
 from correctScripts.correctYaw import correctYaw
 from correctScripts.saveGeoMatriz import saveGeoM
 from ultralytics import YOLO
@@ -101,6 +102,7 @@ if __name__ == '__main__':
         saveGeoM(img_names, metadata_path, geonp_path, path_root)   
         correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images)
         saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+        correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
         
 
     print("Todas la carpetas OK")

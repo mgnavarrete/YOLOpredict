@@ -167,7 +167,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
 
         H, W, _ = img.shape
         img_resized = cv2.resize(img, (640, 640))
-        results = model(img_resized)
+        results = model(source=img_resized, verbose=False)
         alturaList = []
         centroList = []
         for result in results:
@@ -339,6 +339,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                             print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                     else: 
                         if offset_prev < oldValues[0] * 2 or offset_prev > oldValues[0] * 0.5:
                             print("CAMBIADO A VALOR DEL ANTERIOR")
@@ -347,6 +348,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                             print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                 else:
                     offset_oe = offset_prev
             else:
@@ -361,14 +363,16 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                             print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                     else:
-                        if offset_prev < oldValues[0] * 2 or offset_prev < oldValues[0] * 0.5:
+                        if offset_prev < oldValues[0] * 2 or offset_prev > oldValues[0] * 0.5:
                             print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
                             print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                 else:
                     offset_oe = offset_prev
                     
@@ -392,8 +396,10 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
         oldValues[1] = offset_oe
         oldImgepath = image_path        
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E')
+        save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E_tot')
+        print('\n')
     print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}")
-
+    
 
 list_folders = []
 list_images = []
