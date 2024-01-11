@@ -130,7 +130,7 @@ def anguloNorte(lat1, lon1, lat2, lon2):
     return bearing
 
 def save_metadata(metadata_path, image_path, offsetValue, metadatanew_path, offsetkey):
-    # print(f"El {offsetkey} de {image_path}: {offsetValue}")
+    print(f"El {offsetkey} de {image_path}: {offsetValue}")
         # Abre el archivo JSON en modo lectura
     with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
         data = json.load(archivo)
