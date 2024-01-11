@@ -249,8 +249,8 @@ def correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_pa
                             x4, y4 = puntos_ordenados[3]
 
                             area = calcular_area_poligono(puntos_ordenados)
-                            dif_umb = 1000000
-                            area_umb = 0
+                            dif_umb = 0.002
+                            area_umb = 10000
                             if dif_ancho < dif_umb and area > area_umb:
                                 
                                 # Convertir a formato numpy
