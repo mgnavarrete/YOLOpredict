@@ -3,3 +3,5 @@ numpy
 ultralytics==0.0.0  # Reemplaza 0.0.0 con la versión específica de ultralytics que necesitas
 opencv-python
 pyproj
+utm
+tqdm
