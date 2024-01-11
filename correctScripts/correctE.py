@@ -396,7 +396,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
         oldImgepath = image_path        
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E')
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E_tot')
-        print('\n')
+
     print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}")
  
 if __name__ == '__main__':    
