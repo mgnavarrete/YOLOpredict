@@ -147,6 +147,7 @@ def select_directories():
         raise Exception("No se seleccionó ningún directorio")
 
 def correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images):
+    inverse = False
     for image_path in tqdm(img_names, desc="Calculando Offset Yaw"):
         
 
@@ -248,7 +249,9 @@ def correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_pa
                             x4, y4 = puntos_ordenados[3]
 
                             area = calcular_area_poligono(puntos_ordenados)
-                            if dif_ancho < 0.002 and area > 10000:
+                            dif_umb = 1000000
+                            area_umb = 0
+                            if dif_ancho < dif_umb and area > area_umb:
                                 
                                 # Convertir a formato numpy
                                 puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
@@ -280,8 +283,10 @@ def correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_pa
                                 yaw1 = anguloNorte(float(lat1), float(lon1), float(lat4), float(lon4))
                                 yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
                                 
-                                #yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
-                                #yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
+                                if yaw1 > 170 or yaw1 < -170 or yaw2 > 170 or yaw2 < -170 or inverse:
+                                    inverse = True
+                                    yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
+                                    yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
                                 
 
 

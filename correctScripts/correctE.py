@@ -399,73 +399,74 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E_tot')
         print('\n')
     print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}")
-    
+ 
+if __name__ == '__main__':    
 
-list_folders = []
-list_images = []
-model_path = 'best.pt'
-
-
-# Iniciar Tkinter
-root = tk.Tk()
-root.withdraw()
-
-print("Seleccione la tabla KML...")
-csv_file_path = filedialog.askopenfile(title='Seleccione Tabla KML')
-if not csv_file_path:
-        raise Exception("No se seleccionó ningúna Tabla KML")
-print("Tabla KML seleccionada")
-
-# Llamar a la función para seleccionar directorios
-print("Seleccione el directorio raíz...")
-select_directories()
-print("Directorio raíz seleccionado")
-
-for path_root in list_folders:
-    path_root = path_root + "PP"
-    print(f"Procesando Carpeta:{path_root}")
-    # Construir rutas a los subdirectorios
-    folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
-    imgsFolder = os.path.join(path_root, 'cvat')
-    geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
-    metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
-    metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
-
-    img_names = os.listdir(imgsFolder)
-    img_names.sort()
+    list_folders = []
+    list_images = []
+    model_path = 'best.pt'
 
 
-    zone_number = 19
-    zone_letter = 'S'
+    # Iniciar Tkinter
+    root = tk.Tk()
+    root.withdraw()
 
-    # Define la proyección UTM (incluyendo la zona y el hemisferio)
-    utm_crs = CRS(f"+proj=utm +zone={zone_number} +{'+south' if zone_letter > 'N' else ''} +ellps=WGS84")
+    print("Seleccione la tabla KML...")
+    csv_file_path = filedialog.askopenfile(title='Seleccione Tabla KML')
+    if not csv_file_path:
+            raise Exception("No se seleccionó ningúna Tabla KML")
+    print("Tabla KML seleccionada")
 
-    # Define la proyección de latitud/longitud
-    latlon_crs = CRS("EPSG:4326")
+    # Llamar a la función para seleccionar directorios
+    print("Seleccione el directorio raíz...")
+    select_directories()
+    print("Directorio raíz seleccionado")
 
-    # Crear un objeto Transformer para la transformación de coordenadas
-    transformer = Transformer.from_crs(utm_crs, latlon_crs, always_xy=True)
+    for path_root in list_folders:
+        path_root = path_root + "PP"
+        print(f"Procesando Carpeta:{path_root}")
+        # Construir rutas a los subdirectorios
+        folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
+        imgsFolder = os.path.join(path_root, 'cvat')
+        geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
+        metadata_path = os.path.join(path_root, 'metadata')  # Para archivos JSON de metadatos
+        metadatanew_path = os.path.join(path_root, 'metadata')  # Para archivos JSON con offset_yaw modificado
 
-    if not os.path.exists(metadatanew_path):
-            os.mkdir(metadatanew_path)
-    # Preprocesar coordenadas en el DataFrame
-    print("Cargando datos de KML...")
+        img_names = os.listdir(imgsFolder)
+        img_names.sort()
 
-    df = pd.read_csv(csv_file_path)
-    print("Datos cargados")
 
-    print("Cargando modelo YOLO..")
-    model = YOLO(model_path)
-    print("Modelo cargado")
+        zone_number = 19
+        zone_letter = 'S'
 
-    print("Iniciando análisis de imágenes...")
-    # Crear un diccionario para mapear nombres a coordenadas de polyname
-    correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
-    
-    
+        # Define la proyección UTM (incluyendo la zona y el hemisferio)
+        utm_crs = CRS(f"+proj=utm +zone={zone_number} +{'+south' if zone_letter > 'N' else ''} +ellps=WGS84")
 
-print("Todas la carpetas OK")
+        # Define la proyección de latitud/longitud
+        latlon_crs = CRS("EPSG:4326")
+
+        # Crear un objeto Transformer para la transformación de coordenadas
+        transformer = Transformer.from_crs(utm_crs, latlon_crs, always_xy=True)
+
+        if not os.path.exists(metadatanew_path):
+                os.mkdir(metadatanew_path)
+        # Preprocesar coordenadas en el DataFrame
+        print("Cargando datos de KML...")
+
+        df = pd.read_csv(csv_file_path)
+        print("Datos cargados")
+
+        print("Cargando modelo YOLO..")
+        model = YOLO(model_path)
+        print("Modelo cargado")
+
+        print("Iniciando análisis de imágenes...")
+        # Crear un diccionario para mapear nombres a coordenadas de polyname
+        correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+        
+        
+
+    print("Todas la carpetas OK")
 
 
 
