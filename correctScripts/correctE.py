@@ -330,9 +330,9 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
 
             if oldValues[1] > 0:
                 print(f"OldValues: {oldValues[1]}")
-                if offset_prev > oldValues[1] * 2 or offset_prev < oldValues[1] * 0.5:
+                if offset_prev > oldValues[1] * 1.5 or offset_prev < oldValues[1] * 0.5:
                     if oldValues[0] > 0:
-                        if offset_prev > oldValues[0] * 2 or offset_prev < oldValues[0] * 0.5:
+                        if offset_prev > oldValues[0] * 1.5 or offset_prev < oldValues[0] * 0.5:
                             print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
@@ -341,7 +341,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                     else: 
-                        if offset_prev < oldValues[0] * 2 or offset_prev > oldValues[0] * 0.5:
+                        if offset_prev < oldValues[0] * 1.5 or offset_prev > oldValues[0] * 0.5:
                             print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
@@ -354,9 +354,9 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
             else:
                 print(f"OldValues: {oldValues[1]}")
                             
-                if offset_prev < oldValues[1] * 2 or  offset_prev > oldValues[1] *0.5:
+                if offset_prev < oldValues[1] * 1.5 or  offset_prev > oldValues[1] *0.5:
                     if oldValues[0] > 0:
-                        if offset_prev > oldValues[0] * 2 or offset_prev < oldValues[0] * 0.5:
+                        if offset_prev > oldValues[0] * 1.5 or offset_prev < oldValues[0] * 0.5:
                             print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
@@ -365,7 +365,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                     else:
-                        if offset_prev < oldValues[0] * 2 or offset_prev > oldValues[0] * 0.5:
+                        if offset_prev < oldValues[0] * 1.5 or offset_prev > oldValues[0] * 0.5:
                             print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
@@ -378,13 +378,13 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                     
         elif oldValues[0] == None and oldValues[1] != None:
             if oldValues[1] > 0:
-                if offset_prev > oldValues[1] * 2 or offset_prev < oldValues[1] * 0.5:
+                if offset_prev > oldValues[1] * 1.5 or offset_prev < oldValues[1] * 0.5:
                     print("CAMBIADO A VALOR DEL ANTERIOR")
                     offset_oe = oldValues[1]
                 else:
                     offset_oe = offset_prev	
             else:
-                if offset_prev < oldValues[1] * 2 or offset_prev > oldValues[1] * 0.5:
+                if offset_prev < oldValues[1] * 1.5 or offset_prev > oldValues[1] * 0.5:
                     print("CAMBIADO A VALOR DEL ANTERIOR")
                     offset_oe = oldValues[1]
                 else:
