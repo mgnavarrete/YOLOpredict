@@ -312,7 +312,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                 offset_polyd = offset_kmd * 1000
 
                 offset_prev = (offset_polyu + offset_polyd)/2
-                print(f"El offset_E de {image_path}: {offset_prev}")
+                print(f"El offset_prev de {image_path}: {offset_prev}")
 
 
             # Condición cuando solo el grupo de arriba tiene elementos    
@@ -330,19 +330,8 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
 
             if oldValues[1] > 0:
                 print(f"OldValues: {oldValues[1]}")
-                if offset_prev > oldValues[1] * 2 or offset_prev < oldValues[1] / 2:
-                    if offset_prev > oldValues[0] * 2 or offset_prev < oldValues[0] / 2:
-                        print("CAMBIADO A VALOR DEL ANTERIOR")
-                        offset_oe = oldValues[1]
-                    else:
-                        offset_oe = offset_prev
-                        save_metadata(metadata_path, oldImgepath, oldValues, metadatanew_path, 'offset_E')
-                else:
-                    offset_oe = offset_prev
-            else:
-                print(f"OldValues: {oldValues[1]}")
-                if offset_prev < oldValues[1] * 2 or offset_prev > oldValues[1] / 2:
-                    if offset_prev < oldValues[0] * 2 or offset_prev < oldValues[0] / 2:
+                if offset_prev > oldValues[1] * 1.5 or offset_prev < oldValues[1] * 0.5:
+                    if offset_prev > oldValues[0] * 1.5 or offset_prev < oldValues[0] * 0.5:
                         print("CAMBIADO A VALOR DEL ANTERIOR")
                         offset_oe = oldValues[1]
                     else:
@@ -350,15 +339,29 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                         save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                 else:
                     offset_oe = offset_prev
+            else:
+                print(f"OldValues: {oldValues[1]}")
+                            
+                if offset_prev < oldValues[1] * 1.5 or  offset_prev > oldValues[1] *0.5:
+                    if offset_prev < oldValues[0] * 1.5 or offset_prev < oldValues[0] * 0.5:
+                        print("CAMBIADO A VALOR DEL ANTERIOR")
+                        offset_oe = oldValues[1]
+                    else:
+                        print("CAMBIADO DE FILA")
+                        offset_oe = offset_prev
+                        save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                else:
+                    offset_oe = offset_prev
+                    
         if oldValues[0] == None and oldValues[1] != None:
             if oldValues[1] > 0:
-                if offset_prev > oldValues[1] * 2 or offset_prev < oldValues[1] / 2:
+                if offset_prev > oldValues[1] * 1.5 or offset_prev < oldValues[1] * 0.5:
                     print("CAMBIADO A VALOR DEL ANTERIOR")
                     offset_oe = oldValues[1]
                 else:
                     offset_oe = offset_prev	
             else:
-                if offset_prev < oldValues[1] * 2 or offset_prev > oldValues[1] / 2:
+                if offset_prev < oldValues[1] * 1.5 or offset_prev > oldValues[1] * 0.5:
                     print("CAMBIADO A VALOR DEL ANTERIOR")
                     offset_oe = oldValues[1]
                 else:
