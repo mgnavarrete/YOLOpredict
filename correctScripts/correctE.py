@@ -10,8 +10,7 @@ import math
 import tkinter as tk
 from tkinter import filedialog
 from glob import glob
-
-
+from tqdm import tqdm
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     R = 6371  # Radio de la Tierra en kilómetros
@@ -131,7 +130,7 @@ def anguloNorte(lat1, lon1, lat2, lon2):
     return bearing
 
 def save_metadata(metadata_path, image_path, offsetValue, metadatanew_path, offsetkey):
-    print(f"El {offsetkey} de {image_path}: {offsetValue}")
+    # print(f"El {offsetkey} de {image_path}: {offsetValue}")
         # Abre el archivo JSON en modo lectura
     with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
         data = json.load(archivo)
@@ -159,7 +158,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
     oldValues = [None, None]
     oldImgepath = ''
     coordenadas_dict = df.set_index('name').to_dict(orient='index')
-    for image_path in img_names:
+    for image_path in tqdm(img_names, desc="Calculando Offset E"):
 
         keypoint = []
 
@@ -255,7 +254,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
             grupo_abajo = [c for c in centroList if c[2] >= promedio_lon]
             
             if len(grupo_arriba) > 0 and len(grupo_abajo) > 0:
-                print("Ambos grupos tienen elementos")
+                # print("Ambos grupos tienen elementos")
                 for i in grupo_abajo:
                     x ,y,_,_ = i
                     cv2.circle(img, (x, y), 5, (0, 0, 255), -1)
@@ -312,12 +311,12 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                 offset_polyd = offset_kmd * 1000
 
                 offset_prev = (offset_polyu + offset_polyd)/2
-                print(f"El offset_prev de {image_path}: {offset_prev}")
+                # print(f"El offset_prev de {image_path}: {offset_prev}")
 
 
             # Condición cuando solo el grupo de arriba tiene elementos    
             elif len(grupo_arriba) <= 0 or len(grupo_abajo) <= 0:
-                print("No hay dos grupos diferenciables")
+                # print("No hay dos grupos diferenciables")
                 if oldValues[0] == None and oldValues[1] == None:
                     offset_prev = 0
                 elif oldValues[1] != None:
@@ -329,47 +328,47 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
         if None not in oldValues:
 
             if oldValues[1] > 0:
-                print(f"OldValues: {oldValues[1]}")
+                # print(f"OldValues: {oldValues[1]}")
                 if offset_prev > oldValues[1] * 1.5 or offset_prev < oldValues[1] * 0.5:
                     if oldValues[0] > 0:
                         if offset_prev > oldValues[0] * 1.5 or offset_prev < oldValues[0] * 0.5:
-                            print("CAMBIADO A VALOR DEL ANTERIOR")
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
-                            print("CAMBIADO DE FILA")
+                            # print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                     else: 
                         if offset_prev < oldValues[0] * 1.5 or offset_prev > oldValues[0] * 0.5:
-                            print("CAMBIADO A VALOR DEL ANTERIOR")
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
-                            print("CAMBIADO DE FILA")
+                            # print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                 else:
                     offset_oe = offset_prev
             else:
-                print(f"OldValues: {oldValues[1]}")
+                # print(f"OldValues: {oldValues[1]}")
                             
                 if offset_prev < oldValues[1] * 1.5 or  offset_prev > oldValues[1] *0.5:
                     if oldValues[0] > 0:
                         if offset_prev > oldValues[0] * 1.5 or offset_prev < oldValues[0] * 0.5:
-                            print("CAMBIADO A VALOR DEL ANTERIOR")
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
-                            print("CAMBIADO DE FILA")
+                            # print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
                     else:
                         if offset_prev < oldValues[0] * 1.5 or offset_prev > oldValues[0] * 0.5:
-                            print("CAMBIADO A VALOR DEL ANTERIOR")
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_oe = oldValues[1]
                         else:
-                            print("CAMBIADO DE FILA")
+                            # print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
@@ -379,13 +378,13 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
         elif oldValues[0] == None and oldValues[1] != None:
             if oldValues[1] > 0:
                 if offset_prev > oldValues[1] * 1.5 or offset_prev < oldValues[1] * 0.5:
-                    print("CAMBIADO A VALOR DEL ANTERIOR")
+                    # print("CAMBIADO A VALOR DEL ANTERIOR")
                     offset_oe = oldValues[1]
                 else:
                     offset_oe = offset_prev	
             else:
                 if offset_prev < oldValues[1] * 1.5 or offset_prev > oldValues[1] * 0.5:
-                    print("CAMBIADO A VALOR DEL ANTERIOR")
+                    # print("CAMBIADO A VALOR DEL ANTERIOR")
                     offset_oe = oldValues[1]
                 else:
                     offset_oe = offset_prev
