@@ -2,10 +2,87 @@ from xml.etree import ElementTree as ET
 import pandas as pd
 import numpy as np
 
-# Load and parse the KML file
-# list_file_path = ['FINISTERRAE PANELES/FINISTERRAE PANELES 1-3.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 4-11.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 12-20.kml',
-#                   'FINISTERRAE PANELES/FINISTERRAE PANELES 21-31.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 32-41.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 42-49.kml', 'FINISTERRAE PANELES/FINISTERRAE PANELES 50-55.kml']
+def calcular_centro_poligono(poly1, poly2, poly3, poly4):
+        lat_centro = (poly1[1] + poly2[1] + poly3[1] + poly4[1]) / 4
+        lon_centro = (poly1[0] + poly2[0] + poly3[0] + poly4[0]) / 4
+        return lat_centro, lon_centro
 
+def procesar_archivo_kml(file_path):
+    tree = ET.parse(file_path)
+    root = tree.getroot()
+
+# Function to parse coordinates string into latitude, longitude, and height
+def parse_coordinates(coord_str):
+    if coord_str:
+        lon, lat, height = coord_str.split(',')
+        return float(lat), float(lon), float(height)
+    return None, None, None
+
+# Function to parse polygon coordinates
+def parse_polygon_coordinates(polygon):
+    if polygon:
+        outer_boundary = polygon.find('.//kml:outerBoundaryIs/kml:LinearRing/kml:coordinates', namespaces)
+        if outer_boundary is not None and outer_boundary.text:
+            return ' '.join([coords.strip() for coords in outer_boundary.text.split()])
+    return None
+
+
+def anguloNorte(lat1, lon1, lat2, lon2):
+    # Convert latitude and longitude from degrees to radians
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+
+    # Calculate the change in coordinates
+    dlon = lon2 - lon1
+
+    # Calculate the bearing
+    x = np.sin(dlon) * np.cos(lat2)
+    y = np.cos(lat1) * np.sin(lat2) - (np.sin(lat1) * np.cos(lat2) * np.cos(dlon))
+    initial_bearing = np.arctan2(x, y)
+
+    # Convert bearing from radians to degrees
+    initial_bearing = np.degrees(initial_bearing)
+
+    # Normalize the bearing
+    bearing = (initial_bearing + 360) % 360
+
+    return bearing
+
+def ordenar_esquinas_proximas(rectangulo):
+
+    # Ordenar primero por latitud (y) y luego por longitud (x)
+    rectangulo.sort(key=lambda punto: (punto[1], punto[0]))
+
+    # La esquina inferior izquierda es el primer punto (menor latitud, luego menor longitud)
+    # La esquina inferior derecha es el segundo punto
+    # La esquina superior izquierda es el tercer punto
+    # La esquina superior derecha es el cuarto punto
+    esquinas = {
+        "inferior_izquierda": rectangulo[0],
+        "inferior_derecha": rectangulo[1],
+        "superior_izquierda": rectangulo[2],
+        "superior_derecha": rectangulo[3]
+    }
+
+    # Asegurarse de que las esquinas inferior y superior derechas tengan la mayor longitud
+    if esquinas["inferior_derecha"][0] < esquinas["inferior_izquierda"][0]:
+        esquinas["inferior_derecha"], esquinas["inferior_izquierda"] = esquinas["inferior_izquierda"], esquinas["inferior_derecha"]
+    if esquinas["superior_derecha"][0] < esquinas["superior_izquierda"][0]:
+        esquinas["superior_derecha"], esquinas["superior_izquierda"] = esquinas["superior_izquierda"], esquinas["superior_derecha"]
+
+    return esquinas
+
+
+
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371  # Radio de la Tierra en kilómetros
+    dLat = np.radians(lat2 - lat1)
+    dLon = np.radians(lon2 - lon1)
+    a = np.sin(dLat/2) * np.sin(dLat/2) + np.cos(np.radians(lat1)) * np.cos(np.radians(lat2)) * np.sin(dLon/2) * np.sin(dLon/2)
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+    distance = R * c
+    return distance 
 list_file_path = ['kmlTables/CDS - Strings.kml']
 
 new_data = []
@@ -16,60 +93,6 @@ for file_path in list_file_path:
 
     # Define namespaces to parse the KML file
     namespaces = {'kml': 'http://www.opengis.net/kml/2.2'}
-
-    def calcular_centro_poligono(poly1, poly2, poly3, poly4):
-        lat_centro = (poly1[1] + poly2[1] + poly3[1] + poly4[1]) / 4
-        lon_centro = (poly1[0] + poly2[0] + poly3[0] + poly4[0]) / 4
-        return lat_centro, lon_centro
-
-    def procesar_archivo_kml(file_path):
-        tree = ET.parse(file_path)
-        root = tree.getroot()
-
-    # Function to parse coordinates string into latitude, longitude, and height
-    def parse_coordinates(coord_str):
-        if coord_str:
-            lon, lat, height = coord_str.split(',')
-            return float(lat), float(lon), float(height)
-        return None, None, None
-
-    # Function to parse polygon coordinates
-    def parse_polygon_coordinates(polygon):
-        if polygon:
-            outer_boundary = polygon.find('.//kml:outerBoundaryIs/kml:LinearRing/kml:coordinates', namespaces)
-            if outer_boundary is not None and outer_boundary.text:
-                return ' '.join([coords.strip() for coords in outer_boundary.text.split()])
-        return None
-
-
-    def anguloNorte(lat1, lon1, lat2, lon2):
-        # Convert latitude and longitude from degrees to radians
-        lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
-
-        # Calculate the change in coordinates
-        dlon = lon2 - lon1
-
-        # Calculate the bearing
-        x = np.sin(dlon) * np.cos(lat2)
-        y = np.cos(lat1) * np.sin(lat2) - (np.sin(lat1) * np.cos(lat2) * np.cos(dlon))
-        initial_bearing = np.arctan2(x, y)
-
-        # Convert bearing from radians to degrees
-        initial_bearing = np.degrees(initial_bearing)
-
-        # Normalize the bearing
-        bearing = (initial_bearing + 360) % 360
-
-        return bearing
-
-    def haversine_distance(lat1, lon1, lat2, lon2):
-        R = 6371  # Radio de la Tierra en kilómetros
-        dLat = np.radians(lat2 - lat1)
-        dLon = np.radians(lon2 - lon1)
-        a = np.sin(dLat/2) * np.sin(dLat/2) + np.cos(np.radians(lat1)) * np.cos(np.radians(lat2)) * np.sin(dLon/2) * np.sin(dLon/2)
-        c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
-        distance = R * c
-        return distance
 
     # Updated data extraction to include polygons
     updated_data = []
@@ -88,36 +111,48 @@ for file_path in list_file_path:
         
         
         
-    
         # Asignar coordenadas a las variables según los puntos cardinales
         poly1 = polysCords[0]  # Superior Izquierda
         poly2 = polysCords[1]  # inferior izquierda
         poly3 = polysCords[2]  # inferior derecha
         poly4 = polysCords[3]  # superior derecha
-        
+   
         # Extracting point coordinates
         point_coordinates = placemark.find('.//kml:Point/kml:coordinates', namespaces)
         if point_coordinates is not None:
             point = parse_coordinates(point_coordinates.text)
         else:
             # Calcular el punto central si no hay un punto y sí un polígono
-            centro_lat, centro_lon = calcular_centro_poligono(poly1, poly2, poly3, poly4)
+            centro_lat, centro_lon = calcular_centro_poligono(poly2, poly1, poly4, poly3)
             point = (centro_lat, centro_lon)
 
         # Calcular el ángulo para cada polígono
-        yaw1 = anguloNorte(float(poly1[1]), float(poly1[0]), float(poly2[1]), float(poly2[0]))
-        yaw2 = anguloNorte(float(poly4[1]), float(poly4[0]), float(poly3[1]), float(poly3[0]))
+        yaw1 = anguloNorte(float(poly2[1]), float(poly2[0]), float(poly1[1]), float(poly1[0]))
+        yaw2 = anguloNorte(float(poly3[1]), float(poly3[0]), float(poly4[1]), float(poly4[0]))
 
         yawprom = (yaw1 + yaw2) / 2
-
-        # Calcular distancias y promedio
-        distancia1 = haversine_distance(poly1[1], poly1[0], poly2[1], poly2[0])
-        distancia2 = haversine_distance(poly3[1], poly3[0], poly4[1], poly4[0])
+        
+        distancia1 = haversine_distance(poly2[1], poly2[0], poly3[1], poly3[0])
+        distancia2 = haversine_distance(poly1[1], poly1[0], poly4[1], poly4[0])
         distancia_promedio = (distancia1 + distancia2) / 2
+        # si yawprom sxe aleja de 180    
+        if yawprom > 180 * 1.05 or yawprom < 180 * 0.95:
+    
+             # Calcular el ángulo para cada polígono
+            yaw1 = anguloNorte(float(poly4[1]), float(poly4[0]), float(poly1[1]), float(poly1[0]))
+            yaw2 = anguloNorte(float(poly3[1]), float(poly3[0]), float(poly2[1]), float(poly2[0]))
+
+            yawprom = (yaw1 + yaw2) / 2
+            
+            distancia1 = haversine_distance(poly4[1], poly4[0], poly3[1], poly3[0])
+            distancia2 = haversine_distance(poly1[1], poly1[0], poly2[1], poly2[0])
+            distancia_promedio = (distancia1 + distancia2) / 2
+
+        
 
 
         updated_data.append({
-            'name': name, 
+            'name': id, 
             'point':  f"{point[1]},{point[0]}", 
             'polyP1': f"{poly1[0]},{poly1[1]}", 
             'polyP2': f"{poly2[0]},{poly2[1]}", 
@@ -126,14 +161,17 @@ for file_path in list_file_path:
             'yaw': yawprom,
             'ancho': distancia_promedio
         })
+        id = id + 1
     print("Tabla de coordenadas creadas")
     # Creating an updated DataFrame
     updated_df = pd.DataFrame(updated_data)
     updated_df.head()  # Display the first few rows of the updated DataFrame to verify the data extraction
+#PROMEDIO YAW
+yawKML = updated_df['yaw'].mean()
+print("Yaw promedio KML: ", yawKML)
+# Specify the file path for the CSV file
+csv_file_path = file_path.replace(".kml", ".csv")
 
-    # Specify the file path for the CSV file
-    csv_file_path = file_path.replace(".kml", ".csv")
-
-    # Save the DataFrame to a CSV file
-    updated_df.to_csv(csv_file_path, index=False)
-    print("Archivo CSV creado")
+# Save the DataFrame to a CSV file
+updated_df.to_csv(csv_file_path, index=False)
+print("Archivo CSV creado")

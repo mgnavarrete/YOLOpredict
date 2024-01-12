@@ -21,8 +21,7 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     a = np.sin(dLat/2) * np.sin(dLat/2) + np.cos(np.radians(lat1)) * np.cos(np.radians(lat2)) * np.sin(dLon/2) * np.sin(dLon/2)
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
     distance = R * c
-    return distance
-
+    return distance 
 
 def calcular_centroide(puntos):
     suma_x = sum(p[0] for p in puntos)
@@ -132,7 +131,7 @@ def anguloNorte(lat1, lon1, lat2, lon2):
     return bearing
 
 def save_metadata(metadata_path, image_path, offsetValue, metadatanew_path, offsetkey):
-    print(f"El {offsetkey} de {image_path}: {offsetValue}")
+    
         # Abre el archivo JSON en modo lectura
     with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
         data = json.load(archivo)
@@ -144,7 +143,7 @@ def save_metadata(metadata_path, image_path, offsetValue, metadatanew_path, offs
     with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
         # Escribe el diccionario modificado de nuevo en el archivo JSON
         json.dump(data, archivo, indent=4)
-
+    # print(f"El {offsetkey} de {image_path}: {offsetValue}")
 # Función para seleccionar múltiples directorios
 def select_directories():
     
@@ -154,6 +153,124 @@ def select_directories():
         path_root = filedialog.askdirectory(title='Seleccione otro directorio o cancele para continuar')
     if not list_folders:
         raise Exception("No se seleccionó ningún directorio")
+
+def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho):
+    oldValues = [None, None]
+    for image_path in tqdm(img_names, desc="Calculando Offset Altura"):
+
+        img = cv2.imread(folder_path + "/" + image_path)
+
+        H, W, _ = img.shape
+        img_resized = cv2.resize(img, (640, 640))
+        results = model(source=img_resized, verbose=False)
+        alturaList = []
+        for result in results:
+            if result.masks is not None:
+                for j, mask in enumerate(result.masks.data):
+                    mask = mask.cpu().numpy() * 255
+                    mask = cv2.resize(mask, (W, H))
+                    img = cv2.resize(img, (W, H))
+                    # Convertir la máscara a una imagen binaria
+                    _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
+
+                    # Encontrar contornos
+                    contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                    # cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                    if contours:
+                        # Encuentra el contorno más grande
+                        largest_contour = max(contours, key=cv2.contourArea)
+
+                        # Aproximación del polígono
+                        epsilon = 0.015* cv2.arcLength(largest_contour, True)
+                        approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
+                        approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
+                        approx_polygon = np.array(approx_polygon, dtype=int)
+
+                        # print(f"approx_polygon: {approx_polygon}")
+                        if len(approx_polygon) > 3:
+                                                
+                            x1 = approx_polygon[0][0][0]
+                            y1 = approx_polygon[0][0][1]
+                            x2 = approx_polygon[1][0][0]
+                            y2 = approx_polygon[1][0][1]
+                            x3 = approx_polygon[2][0][0]
+                            y3 = approx_polygon[2][0][1]
+                            x4 = approx_polygon[3][0][0]
+                            y4 = approx_polygon[3][0][1]
+
+
+                            puntos = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+                            puntos_ordenados = ordenar_puntos(puntos)
+                            x1, y1 = puntos_ordenados[0]
+                            x2, y2 = puntos_ordenados[1]
+                            x3, y3 = puntos_ordenados[2]
+                            x4, y4 = puntos_ordenados[3]
+                            puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
+                            puntos_np = puntos_np.reshape((-1, 1, 2))
+                            
+                            cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
+                            cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
+                            cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
+                            cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
+                            cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
+                             
+                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+
+                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+
+                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+
+                            # Calcular ancho paneles
+                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                            
+                            # print(f"Ancho1: {ancho1}")
+                            # print(f"Ancho2: {ancho2}")
+                            # print(f"Ancho poly: {avg_ancho}")
+
+                            # print(f"Porcentaje: {porcentaje}")
+                            # alturaList.append(porcentaje)
+                            alturaList.append(ancho1/ancho)
+                            alturaList.append(ancho2/ancho)
+        # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
+
+        if len(alturaList) == 0:
+            offset_altura = 0
+        else:
+            offsetList = closest_values_sorted(alturaList, n=3)
+            # promdeio de los valores de alturaList
+            offset_altura = np.mean(offsetList)
+
+        # if None not in oldValues:
+        #         oldMean = np.mean(oldValues)
+        #         # print(f"Promedio OldValues: {oldMean}")
+        #         if offset_altura > oldMean * 1.5 or offset_altura < oldMean * 0.5:
+        #             # print("CAMBIADO A VALOR DEL PROMEDIO")
+        #             offset_altura = oldMean
+                
+                
+        # elif oldValues[0] == None and oldValues[1] != None:
+        #     if  offset_altura > oldValues[1] * 1.5 or offset_altura < oldValues[1] * 0.5:
+        #         # print("CAMBIADO A VALOR DEL PROMEDIO")
+        #         offset_altura = oldValues[1]
+                            
+        # oldValues[0] = oldValues[1]
+        # oldValues[1] = offset_altura
+
+        
+            
+        save_metadata(metadata_path, image_path, offset_altura, metadatanew_path, 'offset_altura')
+            # print("El valor de 'offset_altura' se ha modificado con éxito.")
+    print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
+
+
 
 def correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model):
         oldValues = [None, None]
@@ -167,7 +284,6 @@ def correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
             H, W, _ = img.shape
             img_resized = cv2.resize(img, (640, 640))
             results = model(source=img_resized, verbose=False)
-            alturaList = []
             centroList = []
             for result in results:
                 if result.masks is not None:
@@ -273,6 +389,8 @@ def correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
                     cv2.circle(img, centroide_grupo_arriba, 5, (255, 255, 0), -1)
                     cv2.circle(img, centroide_grupo_abajo, 5, (255, 0, 255), -1)
 
+                    # cv2.imwrite(f'results/{image_path[:-4]}_correctH.png', img)
+                    
                     xu, yu = centroide_grupo_arriba
                     xd, yd = centroide_grupo_abajo
                     xu_utm, yu_utm = geoImg[yu][xu][0], geoImg[yu][xu][1]
@@ -334,6 +452,122 @@ def correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
 
             # print("El valor de 'offset_altura' se ha modificado con éxito.")
         print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
+
+def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho):
+    oldValues = [None, None]
+    for image_path in tqdm(img_names, desc="Calculando Offset Altura"):
+
+        img = cv2.imread(folder_path + "/" + image_path)
+
+        H, W, _ = img.shape
+        img_resized = cv2.resize(img, (640, 640))
+        results = model(source=img_resized, verbose=False)
+        alturaList = []
+        for result in results:
+            if result.masks is not None:
+                for j, mask in enumerate(result.masks.data):
+                    mask = mask.cpu().numpy() * 255
+                    mask = cv2.resize(mask, (W, H))
+                    img = cv2.resize(img, (W, H))
+                    # Convertir la máscara a una imagen binaria
+                    _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
+
+                    # Encontrar contornos
+                    contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                    # cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                    if contours:
+                        # Encuentra el contorno más grande
+                        largest_contour = max(contours, key=cv2.contourArea)
+
+                        # Aproximación del polígono
+                        epsilon = 0.015* cv2.arcLength(largest_contour, True)
+                        approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
+                        approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
+                        approx_polygon = np.array(approx_polygon, dtype=int)
+
+                        # print(f"approx_polygon: {approx_polygon}")
+                        if len(approx_polygon) > 3:
+                                                
+                            x1 = approx_polygon[0][0][0]
+                            y1 = approx_polygon[0][0][1]
+                            x2 = approx_polygon[1][0][0]
+                            y2 = approx_polygon[1][0][1]
+                            x3 = approx_polygon[2][0][0]
+                            y3 = approx_polygon[2][0][1]
+                            x4 = approx_polygon[3][0][0]
+                            y4 = approx_polygon[3][0][1]
+
+
+                            puntos = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+                            puntos_ordenados = ordenar_puntos(puntos)
+                            x1, y1 = puntos_ordenados[0]
+                            x2, y2 = puntos_ordenados[1]
+                            x3, y3 = puntos_ordenados[2]
+                            x4, y4 = puntos_ordenados[3]
+                            puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
+                            puntos_np = puntos_np.reshape((-1, 1, 2))
+                            
+                            cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
+                            cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
+                            cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
+                            cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
+                            cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
+                             
+                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+
+                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+
+                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+
+                            # Calcular ancho paneles
+                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                            
+                            print(f"Ancho1: {ancho1}")
+                            print(f"Ancho2: {ancho2}")
+                            # print(f"Ancho poly: {avg_ancho}")
+
+                            # print(f"Porcentaje: {porcentaje}")
+                            # alturaList.append(porcentaje)
+                            alturaList.append(ancho1/ancho)
+                            alturaList.append(ancho2/ancho)
+        # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
+
+        if len(alturaList) == 0:
+            offset_altura = 0
+        else:
+            offsetList = closest_values_sorted(alturaList, n=3)
+            # promdeio de los valores de alturaList
+            offset_altura = np.mean(offsetList)
+
+        # if None not in oldValues:
+        #         oldMean = np.mean(oldValues)
+        #         # print(f"Promedio OldValues: {oldMean}")
+        #         if offset_altura > oldMean * 1.5 or offset_altura < oldMean * 0.5:
+        #             # print("CAMBIADO A VALOR DEL PROMEDIO")
+        #             offset_altura = oldMean
+                
+                
+        # elif oldValues[0] == None and oldValues[1] != None:
+        #     if  offset_altura > oldValues[1] * 1.5 or offset_altura < oldValues[1] * 0.5:
+        #         # print("CAMBIADO A VALOR DEL PROMEDIO")
+        #         offset_altura = oldValues[1]
+                            
+        # oldValues[0] = oldValues[1]
+        # oldValues[1] = offset_altura
+
+        
+            
+        save_metadata(metadata_path, image_path, offset_altura, metadatanew_path, 'offset_altura')
+            # print("El valor de 'offset_altura' se ha modificado con éxito.")
+    print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
 
 
 

@@ -1,6 +1,6 @@
-from correctScripts.correctH import correctH
-from correctScripts.correctE import correctE
-from correctScripts.correctYaw import correctYaw
+from correctScripts.correctH import correctH, correctHCDS, correctHLLK
+from correctScripts.correctE import correctE, correctECDS
+from correctScripts.correctYaw import correctYaw, correctYawCDS
 from correctScripts.saveGeoMatriz import saveGeoM
 from ultralytics import YOLO
 import os
@@ -30,20 +30,27 @@ def select_directories():
 if __name__ == '__main__':
     
     print("Seleccione Tipo de planta que se va a ajustar:")
-    print("1. Finis Terrae (FIT)")
-    print("2. TCP")
-    print("3. Campos del Sol (CDS)")
-    print("4. otro")
-    num = input("seleccione una opción: ")
-    if num == '1':
+    print("         1. Finis Terrae (FIT)")
+    print("         2. Finis Terrae Extensión (FIX)")
+    print("         3. Campos del Sol (CDS)")
+    print("         4. Lalakama (LLK)")
+    print("         x. Salir")
+    planta = input("Seleccione una opción: ")
+    if planta == '1':
         areaUmb = 10000
         difUmb = 0.002
-    elif num == '2':
+    elif planta == '2':
         areaUmb = 0
         difUmb = 100000000000
-    elif num == '3':
-        areaUmb = 10000
-        difUmb = 0.002  
+    elif planta == '3':
+        areaUmb = 9000
+        difUmb = 100000
+    elif planta == '4':
+        areaUmb = 0
+        difUmb = 1000000
+    elif planta == 'x':
+        exit()
+        
     else:
         areaUmb = 10000
         difUmb = 0.002
@@ -79,7 +86,8 @@ if __name__ == '__main__':
 
     yawKML = df['yaw'].mean()
     ancho = df['ancho'].mean()
-    
+    print("Yaw promedio KML: ", yawKML)
+    print("Ancho promedio KML: ", ancho)
     print("Cargando modelo YOLO..")
     model = YOLO(model_path)
     print("Modelo cargado")
@@ -116,12 +124,28 @@ if __name__ == '__main__':
        
 
         print("Iniciando análisis de imágenes...")
-        saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-        correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
-        saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-        correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
-        saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-        correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+        
+        if planta == '3':
+            print("Ajustando Planta Campos del Sol...")
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho)
+            correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+        elif planta == '4':
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho)
+            # correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            # correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+        
+        else:
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
         
 
     print("Todas la carpetas OK")
