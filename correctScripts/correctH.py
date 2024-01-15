@@ -227,7 +227,7 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             lon3, lat3 = transformer.transform(x3_utm, y3_utm)
                             lon4, lat4 = transformer.transform(x4_utm, y4_utm)
 
-                            # Calcular ancho paneles
+                             # Calcular ancho paneles
                             ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
                             ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
                             
@@ -237,8 +237,12 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
                             # print(f"Porcentaje: {porcentaje}")
                             # alturaList.append(porcentaje)
-                            alturaList.append(ancho1/ancho)
-                            alturaList.append(ancho2/ancho)
+                            offset_altura1 = 9500 * (ancho - ancho1)
+                            offset_altura2 = 9500 * (ancho - ancho2)
+                            # print(f"Offset Altura 1: {offset_altura1}")
+                            # print(f"Offset Altura 2: {offset_altura2}")
+                            alturaList.append(offset_altura1)
+                            alturaList.append(offset_altura2)
         # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
