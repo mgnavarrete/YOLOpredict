@@ -177,7 +177,8 @@ def correctNLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
         lon1IMG, lat1IMG = transformer.transform(x1c_utm, y1c_utm)
         lon2IMG, lat2IMG = transformer.transform(x2c_utm, y2c_utm)
        
-        # Calcular la diferencia de longitud y la distancia este-oeste
+        # Calcular la diferencia de longitud y la distancia norte sur
+        
         diff_lat1 = lat1 - lat1IMG
         diff_lat2 = lat2 - lat2IMG
     

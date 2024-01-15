@@ -295,7 +295,7 @@ def correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew
                                 
                                 # print(f"offset_yaw: {offset_yaw}")
                                 elif offset_yaw1 > 170 or offset_yaw1 < -170 or offset_yaw2 > 170 or offset_yaw2 < -170:
-                                    inverse = True
+                                    # inverse = True
                                     print("Inverso")
                                     yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
                                     yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
