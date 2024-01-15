@@ -1,6 +1,7 @@
 from correctScripts.correctH import correctH, correctHCDS, correctHLLK
 from correctScripts.correctE import correctE, correctECDS
 from correctScripts.correctYaw import correctYaw, correctYawCDS
+from correctScripts.correctN import correctNLLK
 from correctScripts.saveGeoMatriz import saveGeoM
 from ultralytics import YOLO
 import os
@@ -26,7 +27,13 @@ def select_directories():
     if not list_folders:
         raise Exception("No se seleccionó ningún directorio")
 
-
+def select_kml():
+    print("Seleccione la tabla KML...")
+    csv_file_path = filedialog.askopenfile(title='Seleccione Tabla KML')
+    if not csv_file_path:
+            raise Exception("No se seleccionó ningúna Tabla KML")
+    print("Tabla KML seleccionada")
+    return csv_file_path
 if __name__ == '__main__':
     
     print("Seleccione Tipo de planta que se va a ajustar:")
@@ -39,21 +46,27 @@ if __name__ == '__main__':
     if planta == '1':
         areaUmb = 10000
         difUmb = 0.002
+        csv_file_path = select_kml()
     elif planta == '2':
         areaUmb = 0
         difUmb = 100000000000
+        csv_file_path = select_kml()
     elif planta == '3':
         areaUmb = 15000
         difUmb = 0.002
+        csv_file_path = 'kmlTables/CDS - Strings.csv'
     elif planta == '4':
-        areaUmb = 0
-        difUmb = 1000000
+        areaUmb = 10000
+        difUmb = 100000000
+    
+        csv_file_path = 'kmlTables/LLKCorrection.csv'
     elif planta == 'x':
         exit()
         
     else:
         areaUmb = 10000
         difUmb = 0.002
+        csv_file_path = select_kml()
 
     list_folders = []
     list_images = []
@@ -64,11 +77,7 @@ if __name__ == '__main__':
     root = tk.Tk()
     root.withdraw()
 
-    print("Seleccione la tabla KML...")
-    csv_file_path = filedialog.askopenfile(title='Seleccione Tabla KML')
-    if not csv_file_path:
-            raise Exception("No se seleccionó ningúna Tabla KML")
-    print("Tabla KML seleccionada")
+    
 
     # Llamar a la función para seleccionar directorios
     print("Seleccione el directorio raíz...")
@@ -134,10 +143,12 @@ if __name__ == '__main__':
             correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
         elif planta == '4':
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho)
-            # correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb)
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)  
+            correctNLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, transformer)
+            # correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
             # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            # correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+            # correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
         
         else:
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   

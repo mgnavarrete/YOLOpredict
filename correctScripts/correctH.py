@@ -453,22 +453,41 @@ def correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
             # print("El valor de 'offset_altura' se ha modificado con éxito.")
         print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
 
-def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho):
+def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb):
     oldValues = [None, None]
     for image_path in tqdm(img_names, desc="Calculando Offset Altura"):
 
         img = cv2.imread(folder_path + "/" + image_path)
+        geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+        H, W, _ = img.shape   
 
-        H, W, _ = img.shape
+        alturaList = []
+        x1corner = W-1
+        y1corner = 0
+        x2corner = W-1 
+        y2corner = H-1
+        x1c_utm, y1c_utm = geoImg[y1corner][x1corner][0], geoImg[y1corner][x1corner][1]
+        x2c_utm, y2c_utm = geoImg[y2corner][x2corner][0], geoImg[y2corner][x2corner][1]
+        lon1c, lat1c = transformer.transform(x1c_utm, y1c_utm)
+        lon2c, lat2c = transformer.transform(x2c_utm, y2c_utm)
+        # agregar a archivo metadata los datos de lon1c, lat1c, lon2c, lat2c
+        with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
+            data = json.load(archivo)
+        data['lon1'] = lon1c
+        data['lat1'] = lat1c
+        data['lon2'] = lon2c
+        data['lat2'] = lat2c
+        with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
+            json.dump(data, archivo, indent=4)
+        
         img_resized = cv2.resize(img, (640, 640))
         results = model(source=img_resized, verbose=False)
-        alturaList = []
         for result in results:
             if result.masks is not None:
                 for j, mask in enumerate(result.masks.data):
                     mask = mask.cpu().numpy() * 255
                     mask = cv2.resize(mask, (W, H))
-                    img = cv2.resize(img, (W, H))
+                    
                     # Convertir la máscara a una imagen binaria
                     _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
 
@@ -485,7 +504,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                         approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
                         approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
                         approx_polygon = np.array(approx_polygon, dtype=int)
-
+                        
                         # print(f"approx_polygon: {approx_polygon}")
                         if len(approx_polygon) > 3:
                                                 
@@ -507,38 +526,43 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             x4, y4 = puntos_ordenados[3]
                             puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
                             puntos_np = puntos_np.reshape((-1, 1, 2))
-                            
-                            cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
-                            cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
-                            cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
-                            cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
-                            cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
-                             
-                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+                            area = calcular_area_poligono(puntos_ordenados)
+                            if area > areaUmb:
+                                cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
+                                cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
+                                cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
+                                cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
+                                cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
+                                
+                                
 
-                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
-                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
-                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
-                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+                                x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                                x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                                x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                                x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
 
-                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
-                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
-                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
-                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+                                lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                                lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                                lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                                lon4, lat4 = transformer.transform(x4_utm, y4_utm)
 
-                            # Calcular ancho paneles
-                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
-                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
-                            
-                            print(f"Ancho1: {ancho1}")
-                            print(f"Ancho2: {ancho2}")
-                            # print(f"Ancho poly: {avg_ancho}")
+                                # Calcular ancho paneles
+                                ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                                ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                                
+                                # print(f"Ancho1: {ancho1}")
+                                # print(f"Ancho2: {ancho2}")
+                                # print(f"Ancho poly: {avg_ancho}")
 
-                            # print(f"Porcentaje: {porcentaje}")
-                            # alturaList.append(porcentaje)
-                            alturaList.append(ancho1/ancho)
-                            alturaList.append(ancho2/ancho)
-        # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
+                                # print(f"Porcentaje: {porcentaje}")
+                                # alturaList.append(porcentaje)
+                                offset_altura1 = 10000 * (ancho - ancho1)
+                                offset_altura2 = 10000 * (ancho - ancho2)
+                                # print(f"Offset Altura 1: {offset_altura1}")
+                                # print(f"Offset Altura 2: {offset_altura2}")
+                                alturaList.append(offset_altura1)
+                                alturaList.append(offset_altura2)
+        cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
             offset_altura = 0
