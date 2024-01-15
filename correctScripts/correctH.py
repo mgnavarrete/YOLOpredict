@@ -154,7 +154,7 @@ def select_directories():
     if not list_folders:
         raise Exception("No se seleccionó ningún directorio")
 
-def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho):
+def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb):
     oldValues = [None, None]
     for image_path in tqdm(img_names, desc="Calculando Offset Altura"):
 
@@ -230,19 +230,21 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                              # Calcular ancho paneles
                             ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
                             ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                            area = calcular_area_poligono(puntos_ordenados)
                             
-                            # print(f"Ancho1: {ancho1}")
-                            # print(f"Ancho2: {ancho2}")
-                            # print(f"Ancho poly: {avg_ancho}")
+                            if area > areaUmb:
+                                # print(f"Ancho1: {ancho1}")
+                                # print(f"Ancho2: {ancho2}")
+                                # print(f"Ancho poly: {avg_ancho}")
 
-                            # print(f"Porcentaje: {porcentaje}")
-                            # alturaList.append(porcentaje)
-                            offset_altura1 = 9500 * (ancho - ancho1)
-                            offset_altura2 = 9500 * (ancho - ancho2)
-                            # print(f"Offset Altura 1: {offset_altura1}")
-                            # print(f"Offset Altura 2: {offset_altura2}")
-                            alturaList.append(offset_altura1)
-                            alturaList.append(offset_altura2)
+                                # print(f"Porcentaje: {porcentaje}")
+                                # alturaList.append(porcentaje)
+                                offset_altura1 = 9500 * (ancho - ancho1)
+                                offset_altura2 = 9500 * (ancho - ancho2)
+                                # print(f"Offset Altura 1: {offset_altura1}")
+                                # print(f"Offset Altura 2: {offset_altura2}")
+                                alturaList.append(offset_altura1)
+                                alturaList.append(offset_altura2)
         # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
