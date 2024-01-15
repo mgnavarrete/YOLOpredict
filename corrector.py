@@ -43,8 +43,8 @@ if __name__ == '__main__':
         areaUmb = 0
         difUmb = 100000000000
     elif planta == '3':
-        areaUmb = 9000
-        difUmb = 100000
+        areaUmb = 15000
+        difUmb = 0.002
     elif planta == '4':
         areaUmb = 0
         difUmb = 1000000
