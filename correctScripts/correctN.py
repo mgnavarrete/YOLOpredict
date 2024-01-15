@@ -177,12 +177,21 @@ def correctNLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
         lon1IMG, lat1IMG = transformer.transform(x1c_utm, y1c_utm)
         lon2IMG, lat2IMG = transformer.transform(x2c_utm, y2c_utm)
        
-        # Calcular distancia entre lon1, lat1, lon2, lat2 con lon1IMG, lat1IMG, lon2IMG, lat2IMG
-        dist1 = haversine_distance(lat1, lon1, lat1IMG, lon1IMG)
-        dist2 = haversine_distance(lat2, lon2, lat2IMG, lon2IMG)
-        
-        # Calcular el offset de Norte: distancia en metro desde lat1IMG, lon1IMG hasta lat1, lon1
-        offset_N = ((dist1+dist2)/2)*10000
+        # Calcular la diferencia de longitud y la distancia este-oeste
+        diff_lat1 = lat1 - lat1IMG
+        diff_lat2 = lat2 - lat2IMG
+    
+        # Earth's circumference along the equator in kilometers
+        earth_circumference_km = 40075.0
+
+        # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
+        offset_N1 = diff_lat1 * (earth_circumference_km / 360)
+        offset_N2 = diff_lat2 * (earth_circumference_km / 360)
+
+        offset_np = (offset_N1 + offset_N2) / 2
+        # Convert kilometers to meters
+        offset_N = offset_np * 1000
+
             
         save_metadata(metadata_path, image_path, offset_N, metadatanew_path, 'offset_N')
         save_metadata(metadata_path, image_path, offset_N, metadatanew_path, 'offset_N_tot')
@@ -252,7 +261,7 @@ if __name__ == '__main__':
 
         print("Iniciando análisis de imágenes...")
 
-        correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+
         
 
     print("Todas la carpetas OK")
