@@ -304,7 +304,8 @@ def correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew
                                 offset_yaw2 = yawKML - yaw2
                                 promedio = (offset_yaw1 + offset_yaw2) / 2
                                 # print(f"yaw1: {yaw1}, yaw2: {yaw2}")    
-                                yawList.append(promedio)
+                                yawList.append(offset_yaw1) 
+                                yawList.append(offset_yaw2) 
                              
                                 
         
