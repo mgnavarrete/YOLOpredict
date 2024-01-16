@@ -556,18 +556,23 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
                                 # print(f"Porcentaje: {porcentaje}")
                                 # alturaList.append(porcentaje)
-                                offset_altura1 = 9500 * (ancho - ancho1)
-                                offset_altura2 = 9500 * (ancho - ancho2)
+                                offset_altura1 = 10000 * (ancho - ancho1)
+                                offset_altura2 = 10000 * (ancho - ancho2)
+                                if offset_altura1 > 0 or offset_altura2 > 0:
+                                    alturaList.append(offset_altura1)
+                                    alturaList.append(offset_altura2)
+                                elif offset_altura1 > 0 or offset_altura2 < 0:
+                                    alturaList.append(offset_altura1)
+                                elif offset_altura1 < 0 or offset_altura2 > 0:
+                                    alturaList.append(offset_altura2)
                                 # print(f"Offset Altura 1: {offset_altura1}")
                                 # print(f"Offset Altura 2: {offset_altura2}")
-                                alturaList.append(offset_altura1)
-                                alturaList.append(offset_altura2)
         cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
             offset_altura = 0
         else:
-            offsetList = closest_values_sorted(alturaList, n=3)
+            offsetList = closest_values_sorted(alturaList, n=2)
             # promdeio de los valores de alturaList
             offset_altura = np.mean(offsetList)
 
