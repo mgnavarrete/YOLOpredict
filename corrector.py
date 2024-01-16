@@ -159,5 +159,16 @@ if __name__ == '__main__':
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
             correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
         
-
+        # Itera sobre cada archivo en el directorio
+        for filename in os.listdir(geonp_path):
+            file_path = os.path.join(geonp_path, filename)
+            try:
+                # Si es un archivo, lo elimina
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                # También puedes agregar aquí una condición para eliminar directorios
+                # elif os.path.isdir(file_path):
+                #     shutil.rmtree(file_path)
+            except Exception as e:
+                print('Error al eliminar %s. Razón: %s' % (file_path, e))
     print("Todas la carpetas OK")
