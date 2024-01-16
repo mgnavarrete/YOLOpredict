@@ -262,8 +262,8 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             
             offset_prev=  alturaRelativa * (1- (1/offset_altura))
 
-        umbUP = 1.025
-        umbDOWN = 0.8
+        umbUP = 1.05
+        umbDOWN = 0.9
         if None not in oldValues:
 
             if oldValues[1] > 0:
@@ -326,7 +326,8 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                     offset_altura = offset_prev
         else:
             offset_altura = offset_prev
-                                
+         
+        oldValues[2] = oldValues[0]                        
         oldValues[0] = offset_prev
         oldValues[1] = offset_altura
         oldImgepath = image_path                    
