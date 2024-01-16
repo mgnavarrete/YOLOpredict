@@ -239,24 +239,24 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             # alturaList.append(porcentaje)
                             valor1 = ancho1/ancho
                             valor2 = ancho2/ancho
-                            with open (f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
-                                data = json.load(archivo)
-                            alturaRelativa = data['RelativeAltitude']
-                            alturaRelativa = float(alturaRelativa)
-                            valor1 =  alturaRelativa * (1- (1/valor1))
-                            valor2 =  alturaRelativa * (1- (1/valor2))
+                            
                             alturaList.append(valor1)
                             alturaList.append(valor2)
-                            
-                            
         # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
             offset_altura = 0
         else:
-            offsetList = closest_values_sorted(alturaList, n=3)
+            offsetList = closest_values_sorted(alturaList, n=2)
             # promdeio de los valores de alturaList
             offset_altura = np.mean(offsetList)
+            
+            with open (f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
+                data = json.load(archivo)
+            alturaRelativa = data['RelativeAltitude']
+            alturaRelativa = float(alturaRelativa)
+            
+            offset_altura =  alturaRelativa * (1- (1/offset_altura))
 
         # if None not in oldValues:
         #         oldMean = np.mean(oldValues)
@@ -566,18 +566,12 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
                                 # print(f"Porcentaje: {porcentaje}")
                                 # alturaList.append(porcentaje)
-                                offset_altura1 = 10000 * (ancho - ancho1)
-                                offset_altura2 = 10000 * (ancho - ancho2)
-                                if offset_altura1 > 0 or offset_altura2 > 0:
-                                    alturaList.append(offset_altura1)
-                                    alturaList.append(offset_altura2)
-                                elif offset_altura1 > 0 or offset_altura2 < 0:
-                                    alturaList.append(offset_altura1)
-                                elif offset_altura1 < 0 or offset_altura2 > 0:
-                                    alturaList.append(offset_altura2)
-                                # print(f"Offset Altura 1: {offset_altura1}")
-                                # print(f"Offset Altura 2: {offset_altura2}")
-        cv2.imwrite(f'results/{image_path[:-4]}.png', img)
+                                valor1 = ancho1/ancho
+                                valor2 = ancho2/ancho
+                                
+                                alturaList.append(valor1)
+                                alturaList.append(valor2)
+        # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
             offset_altura = 0
@@ -585,7 +579,13 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             offsetList = closest_values_sorted(alturaList, n=2)
             # promdeio de los valores de alturaList
             offset_altura = np.mean(offsetList)
-
+            
+            with open (f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
+                data = json.load(archivo)
+            alturaRelativa = data['RelativeAltitude']
+            alturaRelativa = float(alturaRelativa)
+            
+            offset_altura =  alturaRelativa * (1- (1/offset_altura))
         # if None not in oldValues:
         #         oldMean = np.mean(oldValues)
         #         # print(f"Promedio OldValues: {oldMean}")
