@@ -155,7 +155,7 @@ def select_directories():
         raise Exception("No se seleccionó ningún directorio")
 
 def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho):
-    oldValues = [None, None]
+    oldValues = [None, None, None]
     for image_path in tqdm(img_names, desc="Calculando Offset Altura"):
 
         img = cv2.imread(folder_path + "/" + image_path)
@@ -226,28 +226,32 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             lon2, lat2 = transformer.transform(x2_utm, y2_utm)
                             lon3, lat3 = transformer.transform(x3_utm, y3_utm)
                             lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+                            area = calcular_area_poligono(puntos_ordenados)
+                            if area > 20000:
+                                # Calcular ancho paneles
+                                ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                                ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                                
+                                # print(f"Ancho1: {ancho1}")
+                                # print(f"Ancho2: {ancho2}")
+                                # print(f"Ancho poly: {avg_ancho}")
 
-                            # Calcular ancho paneles
-                            ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
-                            ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
-                            
-                            # print(f"Ancho1: {ancho1}")
-                            # print(f"Ancho2: {ancho2}")
-                            # print(f"Ancho poly: {avg_ancho}")
-
-                            # print(f"Porcentaje: {porcentaje}")
-                            # alturaList.append(porcentaje)
-                            valor1 = ancho1/ancho
-                            valor2 = ancho2/ancho
-                            
-                            alturaList.append(valor1)
-                            alturaList.append(valor2)
+                                # print(f"Porcentaje: {porcentaje}")
+                                # alturaList.append(porcentaje)
+                                valor1 = ancho1/ancho
+                                valor2 = ancho2/ancho
+                                
+                                alturaList.append(valor1)
+                                alturaList.append(valor2)
         # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
-            offset_altura = 0
+            if oldValues[1] != None:
+                offset_prev = oldValues[1]
+            else:   
+                offset_prev = 0
         else:
-            offsetList = closest_values_sorted(alturaList, n=2)
+            offsetList = closest_values_sorted(alturaList, n=3)
             # promdeio de los valores de alturaList
             offset_altura = np.mean(offsetList)
             
@@ -256,26 +260,76 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             alturaRelativa = data['RelativeAltitude']
             alturaRelativa = float(alturaRelativa)
             
-            offset_altura =  alturaRelativa * (1- (1/offset_altura))
+            offset_prev=  alturaRelativa * (1- (1/offset_altura))
 
-        # if None not in oldValues:
-        #         oldMean = np.mean(oldValues)
-        #         # print(f"Promedio OldValues: {oldMean}")
-        #         if offset_altura > oldMean * 1.5 or offset_altura < oldMean * 0.5:
-        #             # print("CAMBIADO A VALOR DEL PROMEDIO")
-        #             offset_altura = oldMean
-                
-                
-        # elif oldValues[0] == None and oldValues[1] != None:
-        #     if  offset_altura > oldValues[1] * 1.5 or offset_altura < oldValues[1] * 0.5:
-        #         # print("CAMBIADO A VALOR DEL PROMEDIO")
-        #         offset_altura = oldValues[1]
+        umbUP = 1.025
+        umbDOWN = 0.8
+        if None not in oldValues:
+
+            if oldValues[1] > 0:
+                # print(f"OldValues: {oldValues[1]}")
+                if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
+                    if oldValues[0] > 0:
+                        if offset_prev > oldValues[0] * umbUP or offset_prev < oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_altura = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            offset_altura = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                    else: 
+                        if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_altura = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            offset_altura = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                else:
+                    offset_altura = offset_prev
+            else:
+                # print(f"OldValues: {oldValues[1]}")
                             
-        # oldValues[0] = oldValues[1]
-        # oldValues[1] = offset_altura
-
-        
-            
+                if offset_prev < oldValues[1] * umbUP or  offset_prev > oldValues[1] * umbDOWN:
+                    if oldValues[0] > 0:
+                        if offset_prev > oldValues[0] * umbUP or offset_prev < oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_altura = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            offset_altura = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                    else:
+                        if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_altura = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            offset_altura = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                     
+                else:
+                    offset_altura = offset_prev
+                    
+        elif oldValues[0] == None and oldValues[1] != None:
+            if oldValues[1] > 0:
+                if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
+                    # print("CAMBIADO A VALOR DEL ANTERIOR")
+                    offset_altura = oldValues[1]
+                else:
+                    offset_altura = offset_prev	
+            else:
+                if offset_prev < oldValues[1] * umbUP or offset_prev > oldValues[1] * umbDOWN:
+                    # print("CAMBIADO A VALOR DEL ANTERIOR")
+                    offset_altura = oldValues[1]
+                else:
+                    offset_altura = offset_prev
+        else:
+            offset_altura = offset_prev
+                                
+        oldValues[0] = offset_prev
+        oldValues[1] = offset_altura
+        oldImgepath = image_path                    
         save_metadata(metadata_path, image_path, offset_altura, metadatanew_path, 'offset_altura')
             # print("El valor de 'offset_altura' se ha modificado con éxito.")
     print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
@@ -555,26 +609,30 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                                 lon2, lat2 = transformer.transform(x2_utm, y2_utm)
                                 lon3, lat3 = transformer.transform(x3_utm, y3_utm)
                                 lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+                                area = calcular_area_poligono(puntos_ordenados)
+                                if area > 15000:
+                                    # Calcular ancho paneles
+                                    ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
+                                    ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
+                                    
+                                    # print(f"Ancho1: {ancho1}")
+                                    # print(f"Ancho2: {ancho2}")
+                                    # print(f"Ancho poly: {avg_ancho}")
 
-                                # Calcular ancho paneles
-                                ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
-                                ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
-                                
-                                # print(f"Ancho1: {ancho1}")
-                                # print(f"Ancho2: {ancho2}")
-                                # print(f"Ancho poly: {avg_ancho}")
-
-                                # print(f"Porcentaje: {porcentaje}")
-                                # alturaList.append(porcentaje)
-                                valor1 = ancho1/ancho
-                                valor2 = ancho2/ancho
-                                
-                                alturaList.append(valor1)
-                                alturaList.append(valor2)
-        # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
+                                    # print(f"Porcentaje: {porcentaje}")
+                                    # alturaList.append(porcentaje)
+                                    valor1 = ancho1/ancho
+                                    valor2 = ancho2/ancho
+                                    
+                                    alturaList.append(valor1)
+                                    alturaList.append(valor2)
+            # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
-            offset_altura = 0
+            if oldValues[1] != None:
+                offset_prev = oldValues[1]
+            else:   
+                offset_prev = 0
         else:
             offsetList = closest_values_sorted(alturaList, n=2)
             # promdeio de los valores de alturaList
@@ -585,27 +643,79 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             alturaRelativa = data['RelativeAltitude']
             alturaRelativa = float(alturaRelativa)
             
-            offset_altura =  alturaRelativa * (1- (1/offset_altura))
-        # if None not in oldValues:
-        #         oldMean = np.mean(oldValues)
-        #         # print(f"Promedio OldValues: {oldMean}")
-        #         if offset_altura > oldMean * 1.5 or offset_altura < oldMean * 0.5:
-        #             # print("CAMBIADO A VALOR DEL PROMEDIO")
-        #             offset_altura = oldMean
-                
-                
-        # elif oldValues[0] == None and oldValues[1] != None:
-        #     if  offset_altura > oldValues[1] * 1.5 or offset_altura < oldValues[1] * 0.5:
-        #         # print("CAMBIADO A VALOR DEL PROMEDIO")
-        #         offset_altura = oldValues[1]
-                            
-        # oldValues[0] = oldValues[1]
-        # oldValues[1] = offset_altura
+            offset_prev=  alturaRelativa * (1- (1/offset_altura))
 
-        
-            
+        umbUP = 1.025
+        umbDOWN = 0.8
+        if None not in oldValues:
+
+            if oldValues[1] > 0:
+                # print(f"OldValues: {oldValues[1]}")
+                if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
+                    if oldValues[0] > 0:
+                        if offset_prev > oldValues[0] * umbUP or offset_prev < oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_altura = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            offset_altura = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                    else: 
+                        if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_altura = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            offset_altura = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                else:
+                    offset_altura = offset_prev
+            else:
+                # print(f"OldValues: {oldValues[1]}")
+                            
+                if offset_prev < oldValues[1] * umbUP or  offset_prev > oldValues[1] * umbDOWN:
+                    if oldValues[0] > 0:
+                        if offset_prev > oldValues[0] * umbUP or offset_prev < oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_altura = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            offset_altura = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                    else:
+                        if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_altura = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            offset_altura = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                    
+                else:
+                    offset_altura = offset_prev
+                    
+        elif oldValues[0] == None and oldValues[1] != None:
+            if oldValues[1] > 0:
+                if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
+                    # print("CAMBIADO A VALOR DEL ANTERIOR")
+                    offset_altura = oldValues[1]
+                else:
+                    offset_altura = offset_prev	
+            else:
+                if offset_prev < oldValues[1] * umbUP or offset_prev > oldValues[1] * umbDOWN:
+                    # print("CAMBIADO A VALOR DEL ANTERIOR")
+                    offset_altura = oldValues[1]
+                else:
+                    offset_altura = offset_prev
+        else:
+            offset_altura = offset_prev
+                                
+        oldValues[0] = offset_prev
+        oldValues[1] = offset_altura
+        oldImgepath = image_path                    
         save_metadata(metadata_path, image_path, offset_altura, metadatanew_path, 'offset_altura')
             # print("El valor de 'offset_altura' se ha modificado con éxito.")
+        
     print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
 
 
