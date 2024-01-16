@@ -237,8 +237,20 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
                             # print(f"Porcentaje: {porcentaje}")
                             # alturaList.append(porcentaje)
-                            alturaList.append(ancho1/ancho)
-                            alturaList.append(ancho2/ancho)
+                            valor1 = ancho1/ancho
+                            valor2 = ancho2/ancho
+                            with open (f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
+                                data = json.load(archivo)
+                            alturaRelativa = data['RelativeAltitude']
+                            
+                            valor1 =  alturaRelativa * (1- (1/valor1))
+                            valor2 =  alturaRelativa * (1- (1/valor2))
+                            
+                 
+                            alturaList.append(valor1)
+                            alturaList.append(valor2)
+                            
+                            
         # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
 
         if len(alturaList) == 0:
