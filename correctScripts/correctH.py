@@ -264,6 +264,8 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
         umbUP = 1.05
         umbDOWN = 0.9
+        listFilaPath = []
+        valorFilaAnt = None
         if None not in oldValues:
 
             if oldValues[1] > 0:
@@ -275,16 +277,30 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
+                            if len(listFilaPath) < 10 and len(listFilaPath) > 0:
+                                for i in len(listFilaPath):
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
+                      
                             offset_altura = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                            listFilaPath = []
+                            listFilaPath.append(oldImgepath)
+                            valorFilaAnt = oldValues[1]
                     else: 
                         if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
                             # print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
+                            if len(listFilaPath) < 10 and len(listFilaPath) > 0:
+                                for i in len(listFilaPath):
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
+                      
                             offset_altura = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                            listFilaPath = []
+                            listFilaPath.append(oldImgepath)
+                            valorFilaAnt = oldValues[1]
                 else:
                     offset_altura = offset_prev
             else:
@@ -297,16 +313,31 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
+                            if len(listFilaPath) < 10 and len(listFilaPath) > 0:
+                                for i in len(listFilaPath):
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
+                      
                             offset_altura = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                            listFilaPath = []
+                            listFilaPath.append(oldImgepath)
+                            valorFilaAnt = oldValues[1]
                     else:
                         if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
                             # print("CAMBIADO A VALOR DEL ANTERIOR")
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
+                        
+                            if len(listFilaPath) < 10 and len(listFilaPath) > 0:
+                                for i in len(listFilaPath):
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
+                      
                             offset_altura = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
+                            listFilaPath = []
+                            listFilaPath.append(oldImgepath)
+                            valorFilaAnt = oldValues[1]
                      
                 else:
                     offset_altura = offset_prev
@@ -326,11 +357,13 @@ def correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                     offset_altura = offset_prev
         else:
             offset_altura = offset_prev
-         
+        
+        
         oldValues[2] = oldValues[0]                        
         oldValues[0] = offset_prev
         oldValues[1] = offset_altura
-        oldImgepath = image_path                    
+        oldImgepath = image_path      
+        listFilaPath.append(image_path)              
         save_metadata(metadata_path, image_path, offset_altura, metadatanew_path, 'offset_altura')
             # print("El valor de 'offset_altura' se ha modificado con éxito.")
     print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
@@ -611,7 +644,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                                 lon3, lat3 = transformer.transform(x3_utm, y3_utm)
                                 lon4, lat4 = transformer.transform(x4_utm, y4_utm)
                                 area = calcular_area_poligono(puntos_ordenados)
-                                if area > 15000:
+                                if area > 20000:
                                     # Calcular ancho paneles
                                     ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
                                     ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
@@ -635,7 +668,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             else:   
                 offset_prev = 0
         else:
-            offsetList = closest_values_sorted(alturaList, n=2)
+            offsetList = closest_values_sorted(alturaList, n=3)
             # promdeio de los valores de alturaList
             offset_altura = np.mean(offsetList)
             
@@ -646,8 +679,8 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             
             offset_prev=  alturaRelativa * (1- (1/offset_altura))
 
-        umbUP = 1.025
-        umbDOWN = 0.8
+        umbUP = 1.05
+        umbDOWN = 0.9
         if None not in oldValues:
 
             if oldValues[1] > 0:
@@ -691,7 +724,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             # print("CAMBIADO DE FILA")
                             offset_altura = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_altura')
-                    
+                     
                 else:
                     offset_altura = offset_prev
                     
@@ -710,15 +743,13 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                     offset_altura = offset_prev
         else:
             offset_altura = offset_prev
-                                
+                    
         oldValues[0] = offset_prev
         oldValues[1] = offset_altura
         oldImgepath = image_path                    
         save_metadata(metadata_path, image_path, offset_altura, metadatanew_path, 'offset_altura')
             # print("El valor de 'offset_altura' se ha modificado con éxito.")
-        
     print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
-
 
 
 if __name__ == '__main__':
