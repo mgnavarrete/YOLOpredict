@@ -1,5 +1,5 @@
 from correctScripts.correctH import correctH, correctHCDS, correctHLLK
-from correctScripts.correctE import correctE, correctECDS
+from correctScripts.correctE import correctE, correctECDS, correctELLK
 from correctScripts.correctYaw import correctYaw, correctYawCDS
 from correctScripts.correctN import correctNLLK
 from correctScripts.saveGeoMatriz import saveGeoM
@@ -16,6 +16,33 @@ import tkinter as tk
 from tkinter import filedialog
 from glob import glob
 from tqdm import tqdm
+
+
+def deleteGeoNp(geonp_path):
+        for filename in os.listdir(geonp_path):
+            file_path = os.path.join(geonp_path, filename)
+            try:
+                # Si es un archivo, lo elimina
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                # También puedes agregar aquí una condición para eliminar directorios
+                # elif os.path.isdir(file_path):
+                #     shutil.rmtree(file_path)
+            except Exception as e:
+                print('Error al eliminar %s. Razón: %s' % (file_path, e))
+
+def resetMD(metadata_path):
+    for filename in tqdm(os.listdir(metadata_path), desc="Reset Metadata"):
+        file_path = os.path.join(metadata_path, filename)
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        data['offset_E'] = 0
+        data['offset_altura'] = 0
+        data['offset_E_tot'] = 0
+        data['offset_yaw'] = 0
+        with open(file_path, 'w') as f:
+            json.dump(data, f, indent=4)
+        
 
 # Función para seleccionar múltiples directorios
 def select_directories():
@@ -136,20 +163,21 @@ if __name__ == '__main__':
         
         if planta == '3':
             print("Ajustando Planta Campos del Sol...")
+            resetMD(metadata_path)
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
             correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho)
-            # correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
-            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
-        elif planta == '4':
-            print("Ajustando Planta Lalakama...")
-            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb)
-            # saveGeoM(img_names, metadata_path, geonp_path, path_root)  
-            # correctNLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, transformer)
             correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
             correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+            deleteGeoNp(geonp_path)
+        elif planta == '4':
+            print("Ajustando Planta Lalakama...")
+            resetMD(metadata_path)
+            # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            # correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb)
+            # correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            # correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
     
         else:
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
@@ -158,17 +186,8 @@ if __name__ == '__main__':
             correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
             correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+            deleteGeoNp(geonp_path)
         
-        # Itera sobre cada archivo en el directorio
-        for filename in os.listdir(geonp_path):
-            file_path = os.path.join(geonp_path, filename)
-            try:
-                # Si es un archivo, lo elimina
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                # También puedes agregar aquí una condición para eliminar directorios
-                # elif os.path.isdir(file_path):
-                #     shutil.rmtree(file_path)
-            except Exception as e:
-                print('Error al eliminar %s. Razón: %s' % (file_path, e))
+
+
     print("Todas la carpetas OK")

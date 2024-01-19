@@ -12,6 +12,24 @@ from tkinter import filedialog
 from glob import glob
 from tqdm import tqdm
 
+
+def convertir_a_decimal(coordenada):
+    # Dividir la cadena en grados, minutos y segundos
+    partes = coordenada.split()
+    grados = float(partes[0].replace("deg", ""))
+    minutos = float(partes[1].replace("'", ""))
+    segundos = float(partes[2].replace("\"", ""))
+
+    # Convertir a valor decimal
+    decimal = grados + minutos/60 + segundos/3600
+
+    # Ajustar para coordenadas Oeste y Sur
+    if "W" in coordenada or "S" in coordenada:
+        decimal = -decimal
+
+    return decimal
+
+
 def haversine_distance(lat1, lon1, lat2, lon2):
     R = 6371  # Radio de la Tierra en kilómetros
     dLat = np.radians(lat2 - lat1)
@@ -78,16 +96,22 @@ def findClosest(x1, y1, df, poly, geoImg, transformer):
     df = split_poly_into_lat_lon(df,poly)
     x_utm, y_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
     lon, lat = transformer.transform(x_utm, y_utm)
+    try:
+        # Calcula la distancia usando una función vectorizada
+        df['distance'] = df.apply(lambda row: haversine_distance(lat, lon, row['lat'], row['lon']), axis=1)
 
-    # Calcula la distancia usando una función vectorizada
-    df['distance'] = df.apply(lambda row: haversine_distance(lat, lon, row['lat'], row['lon']), axis=1)
-
-    # Encuentra el punto más cercano
-    closest_row = df.loc[df['distance'].idxmin()]
-    closest_name = closest_row['name']
-    min_distance = closest_row['distance']
-
-    return closest_name, min_distance, poly
+        # Encuentra el punto más cercano
+        closest_row = df.loc[df['distance'].idxmin()]
+        closest_name = closest_row['name']
+        min1 = closest_row['distance']
+        return closest_name, min1, poly
+        
+    except KeyError:
+        # Aquí puedes manejar el error o simplemente pasarlo para continuar con el siguiente elemento
+        print(f"Ocurrió un error con el elemento. Continuando con el siguiente.")
+        return None, None, None
+    
+    
 
 def closest_values_sorted(lst, n=3):
     if len(lst) < n:
@@ -263,25 +287,28 @@ def correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             xu_utm, yu_utm = geoImg[yu][xu][0], geoImg[yu][xu][1]
             lonu, latu = transformer.transform(xu_utm, yu_utm)
             namep1, minp1, polynamep1 = findClosest(xu,yu,df,'point', geoImg, transformer)
-         
-            # Obtener lon y lat directamente del diccionario
-            lonKMLu, latKMLu= coordenadas_dict[namep1][polynamep1].split(",")
-            lonKMLu, latKMLu = float(lonKMLu), float(latKMLu)
-       
-            # Calcular la diferencia de longitud y la distancia este-oeste
-            diff_lonu = lonKMLu - lonu
-      
-            # Earth's circumference along the equator in kilometers
-            earth_circumference_km = 40075.0
+            if namep1 != None:
+            
+                # Obtener lon y lat directamente del diccionario
+                lonKMLu, latKMLu= coordenadas_dict[namep1][polynamep1].split(",")
+                lonKMLu, latKMLu = float(lonKMLu), float(latKMLu)
+        
+                # Calcular la diferencia de longitud y la distancia este-oeste
+                diff_lonu = lonKMLu - lonu
+        
+                # Earth's circumference along the equator in kilometers
+                earth_circumference_km = 40075.0
 
-            # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
-            offset_kmu = diff_lonu * (earth_circumference_km / 360)
-      
+                # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
+                offset_kmu = diff_lonu * (earth_circumference_km / 360)
+        
 
-            # Convert kilometers to meters
-            offset_polyu = offset_kmu * 1000
+                # Convert kilometers to meters
+                offset_polyu = offset_kmu * 1000
 
-            offset_prev = offset_polyu
+                offset_prev = offset_polyu
+            else:
+                offset_prev = 0
          
 
 
@@ -365,7 +392,7 @@ def correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
         oldImgepath = image_path        
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E')
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E_tot')
-        cv2.imwrite(f"{folder_path}/{image_path}", img)
+        # cv2.imwrite(f"{folder_path}/{image_path}", img)
     print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}") 
  
  
@@ -617,6 +644,261 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E_tot')
 
     print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}")
+
+def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model):
+    oldValues = [None, None]
+    oldImgepath = ''
+    coordenadas_dict = df.set_index('name').to_dict(orient='index')
+    for image_path in tqdm(img_names, desc="Calculando Offset E"):
+
+        keypoint = []
+
+        img = cv2.imread(folder_path + "/" + image_path)
+
+        H, W, _ = img.shape
+        img_resized = cv2.resize(img, (640, 640))
+        results = model(source=img_resized, verbose=False)
+        alturaList = []
+        centroList = []
+        for result in results:
+            if result.masks is not None:
+                for j, mask in enumerate(result.masks.data):
+                    mask = mask.cpu().numpy() * 255
+                    mask = cv2.resize(mask, (W, H))
+                    img = cv2.resize(img, (W, H))
+                    # Convertir la máscara a una imagen binaria
+                    _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
+
+                    # Encontrar contornos
+                    contours, _ = cv2.findContours(thresholded.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                    # cv2.imwrite(f'masks/{image_path[:-4]}_{j}.png', mask)
+                    if contours:
+                        # Encuentra el contorno más grande
+                        largest_contour = max(contours, key=cv2.contourArea)
+
+                        # Aproximación del polígono
+                        epsilon = 0.015* cv2.arcLength(largest_contour, True)
+                        approx_polygon = cv2.approxPolyDP(largest_contour, epsilon, True)
+                        approx_polygon = sorted(approx_polygon, key=lambda x: x[0][0])
+                        approx_polygon = np.array(approx_polygon, dtype=int)
+
+                        # print(f"approx_polygon: {approx_polygon}")
+                        if len(approx_polygon) > 3:
+                        
+                            x1 = approx_polygon[0][0][0]
+                            y1 = approx_polygon[0][0][1]
+                            x2 = approx_polygon[1][0][0]
+                            y2 = approx_polygon[1][0][1]
+                            x3 = approx_polygon[2][0][0]
+                            y3 = approx_polygon[2][0][1]
+                            x4 = approx_polygon[3][0][0]
+                            y4 = approx_polygon[3][0][1]
+
+                            puntos = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+                            puntos_ordenados = ordenar_puntos(puntos)
+                            x1, y1 = puntos_ordenados[0]
+                            x2, y2 = puntos_ordenados[1]
+                            x3, y3 = puntos_ordenados[2]
+                            x4, y4 = puntos_ordenados[3]
+
+                            area = calcular_area_poligono(puntos_ordenados)
+                            
+
+                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+
+                            x1_utm, y1_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
+                            x2_utm, y2_utm = geoImg[y2][x2][0], geoImg[y2][x2][1]
+                            x3_utm, y3_utm = geoImg[y3][x3][0], geoImg[y3][x3][1]
+                            x4_utm, y4_utm = geoImg[y4][x4][0], geoImg[y4][x4][1]
+
+                            lon1, lat1 = transformer.transform(x1_utm, y1_utm)
+                            lon2, lat2 = transformer.transform(x2_utm, y2_utm)
+                            lon3, lat3 = transformer.transform(x3_utm, y3_utm)
+                            lon4, lat4 = transformer.transform(x4_utm, y4_utm)
+
+                            puntos_np = np.array([(x1,y1),(x2,y2),(x3,y3),(x4,y4)], np.int32)
+                            puntos_np = puntos_np.reshape((-1, 1, 2))
+
+                            xc = int(round((x1 + x2 + x3 + x4) / 4))
+                            yc = int(round((y1 + y2 + y3 + y4) / 4))
+                            cv2.circle(img, (xc, yc), 5, (255, 255, 255), -1)
+                            cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
+                            cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
+                            cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
+                            cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
+                            cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
+                        
+                            geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
+
+                            x_utm, y_utm = geoImg[yc][xc][0], geoImg[yc][xc][1]
+                            lonImg, latImg = transformer.transform(x_utm, y_utm)
+
+                            centroList.append([xc, yc, lonImg, latImg])
+
+        if len(centroList) > 0:
+            # print("Ambos grupos tienen elementos")
+            for i in centroList:
+                x ,y,_,_ = i
+                cv2.circle(img, (x, y), 5, (0, 0, 255), -1)
+
+
+            # Calcular el centroide para cada grupo
+            centroide = calcular_centroide([(c[0], c[1]) for c in centroList])
+         
+
+            # Dibujar los centroides en la imagen
+            cv2.circle(img, centroide, 5, (255, 255, 0), -1)
+
+            xu, yu = centroide
+            xu_utm, yu_utm = geoImg[yu][xu][0], geoImg[yu][xu][1]
+            lonu, latu = transformer.transform(xu_utm, yu_utm)
+            namep1, minp1, polynamep1 = findClosest(xu,yu,df,'point', geoImg, transformer)
+            if namep1 != None:
+                # Obtener lon y lat directamente del diccionario
+                lonKMLu, latKMLu= coordenadas_dict[namep1][polynamep1].split(",")
+                lonKMLu, latKMLu = float(lonKMLu), float(latKMLu)
+        
+                # Calcular la diferencia de longitud y la distancia este-oeste
+                diff_lonu = lonKMLu - lonu
+        
+                # Earth's circumference along the equator in kilometers
+                earth_circumference_km = 40075.0
+
+                # Convert offset from degrees to kilometers (1 degree = Earth's circumference / 360)
+                offset_kmu = diff_lonu * (earth_circumference_km / 360)
+        
+
+                # Convert kilometers to meters
+                offset_polyu = offset_kmu * 1000
+
+                offset_prev = offset_polyu
+            
+            else:
+                offset_prev = 0
+
+
+
+        else:
+            if oldValues[1] != None:
+                offset_prev = oldValues[1]
+            else:   
+                offset_prev = 0
+        
+        umbUP = 1.05
+        umbDOWN = 0.9
+        listFilaPath = []
+        valorFilaAnt = None
+        filaMIN = 5
+        if None not in oldValues:
+
+            if oldValues[1] > 0:
+                # print(f"OldValues: {oldValues[1]}")
+                if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
+                    if oldValues[0] > 0:
+                        if offset_prev > oldValues[0] * umbUP or offset_prev < oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_oe = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            if len(listFilaPath) < filaMIN and len(listFilaPath) > 0:
+                                for i in len(listFilaPath):
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
+                      
+                            offset_oe = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
+                            listFilaPath = []
+                            listFilaPath.append(oldImgepath)
+                            valorFilaAnt = oldValues[1]
+                    else: 
+                        if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_oe = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            if len(listFilaPath) < filaMIN and len(listFilaPath) > 0:
+                                for i in len(listFilaPath):
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
+                      
+                            offset_oe = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
+                            listFilaPath = []
+                            listFilaPath.append(oldImgepath)
+                            valorFilaAnt = oldValues[1]
+                else:
+                    offset_oe = offset_prev
+            else:
+                # print(f"OldValues: {oldValues[1]}")
+                            
+                if offset_prev < oldValues[1] * umbUP or  offset_prev > oldValues[1] * umbDOWN:
+                    if oldValues[0] > 0:
+                        if offset_prev > oldValues[0] * umbUP or offset_prev < oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_oe = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            if len(listFilaPath) < filaMIN and len(listFilaPath) > 0:
+                                for i in len(listFilaPath):
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
+                      
+                            offset_oe = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
+                            listFilaPath = []
+                            listFilaPath.append(oldImgepath)
+                            valorFilaAnt = oldValues[1]
+                    else:
+                        if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
+                            # print("CAMBIADO A VALOR DEL ANTERIOR")
+                            offset_oe = oldValues[1]
+                        else:
+                            # print("CAMBIADO DE FILA")
+                            if len(listFilaPath) < filaMIN and len(listFilaPath) > 0:
+                                for i in len(listFilaPath):
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
+                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
+                      
+                            offset_oe = offset_prev
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
+                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
+                            listFilaPath = []
+                            listFilaPath.append(oldImgepath)
+                            valorFilaAnt = oldValues[1]
+                else:
+                    offset_oe = offset_prev
+                    
+        elif oldValues[0] == None and oldValues[1] != None:
+            if oldValues[1] > 0:
+                if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
+                    # print("CAMBIADO A VALOR DEL ANTERIOR")
+                    offset_oe = oldValues[1]
+                else:
+                    offset_oe = offset_prev	
+            else:
+                if offset_prev < oldValues[1] * umbUP or offset_prev > oldValues[1] * umbDOWN:
+                    # print("CAMBIADO A VALOR DEL ANTERIOR")
+                    offset_oe = oldValues[1]
+                else:
+                    offset_oe = offset_prev
+        else:
+            offset_oe = offset_prev
+                                
+        oldValues[0] = offset_prev
+        oldValues[1] = offset_oe
+        oldImgepath = image_path        
+        save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E')
+        save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E_tot')
+        cv2.imwrite(f"{folder_path}/{image_path}", img)
+    print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}") 
+
+
+
+
  
 if __name__ == '__main__':    
 

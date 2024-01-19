@@ -285,23 +285,16 @@ def correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew
                                 yaw2 = anguloNorte(float(lat2), float(lon2), float(lat3), float(lon3))
                                 
                                 offset_yaw1 = yawKML - yaw1
-                                offset_yaw2 = yawKML - yaw2
-                                
-                                if inverse:
-                                    
-                                    yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
-                                    yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
-                                    
-                                
+                                offset_yaw2 = yawKML - yaw2                               
                                 # print(f"offset_yaw: {offset_yaw}")
-                                elif offset_yaw1 > 170 or offset_yaw1 < -170 or offset_yaw2 > 170 or offset_yaw2 < -170:
-                                    # inverse = True
+                                if offset_yaw1 > 170 or offset_yaw1 < -170 or offset_yaw2 > 170 or offset_yaw2 < -170:
                                     # print("Inverso")
                                     yaw1 = anguloNorte(float(lat4), float(lon4), float(lat1), float(lon1))
                                     yaw2 = anguloNorte(float(lat3), float(lon3), float(lat2), float(lon2))
                                 
-                                offset_yaw1 = yawKML - yaw1
-                                offset_yaw2 = yawKML - yaw2
+                                    offset_yaw1 = yawKML - yaw1
+                                    offset_yaw2 = yawKML - yaw2
+                                    
                                 promedio = (offset_yaw1 + offset_yaw2) / 2
                                 # print(f"yaw1: {yaw1}, yaw2: {yaw2}")    
                                 yawList.append(offset_yaw1) 
