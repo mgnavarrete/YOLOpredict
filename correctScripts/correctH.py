@@ -684,7 +684,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 1 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 5 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
                       
@@ -699,7 +699,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 1 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 5 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
                       
@@ -720,7 +720,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 1 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 5 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
                       
@@ -736,7 +736,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                         else:
                             # print("CAMBIADO DE FILA")
                         
-                            if len(listFilaPath) < 1 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 5 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
                       
