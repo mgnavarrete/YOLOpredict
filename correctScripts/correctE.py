@@ -801,7 +801,7 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                 listVueloPath.append(image_path)
                 listVueloValues.append(offset_prev)
             else: 
-                listCercanos = closest_values_sorted(listVueloValues, n=5)  
+                listCercanos = closest_values_sorted(listVueloValues, n=3)  
                 for i in listVueloPath:
                     save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos) , metadatanew_path, 'offset_E')
                     save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos), metadatanew_path, 'offset_E_tot')                
