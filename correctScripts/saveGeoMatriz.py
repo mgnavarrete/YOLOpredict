@@ -7,6 +7,7 @@ import os
 import string
 from tqdm import tqdm
 
+
 def dms2dd(data):
     dd = float(data[0]) + float(data[1]) / 60 + float(data[2]) / (60 * 60)
     if data[3] == 'W' or data[3] == 'S':
@@ -174,6 +175,78 @@ def saveGeoM(img_names, metadata_path, geonp_path, folder_path):
         geo_name = f'{geonp_path}/{image_path[:-4]}.npy'
         np.save(geo_name, m)
     print(f"Matrices Georeferenciadas generadas para todas las imágenes de la carpeta {folder_path}")
+    
+
+def saveKML(path_imagenes, path_save):
+    with open(path_save + '/' + path_save.split('/')[-1] + '.kml', 'w') as file:
+            a = f'''<?xml version="1.0" encoding="UTF-8"?>
+        <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+        <Folder>
+            <name>{path_save.split('/')[-1]}</name>
+            '''
+            file.write(a)
+            vuelo_ant = ''
+            for f_name in tqdm(path_imagenes, desc="Generando KML"):
+                
+                nombre = f_name[:-4]
+                
+                vuelo = 'cvat'
+         
+                # Carga la metadata de la imagen
+                str_metada_file = f"{path_save}/metadata/{nombre}.txt"
+                with open(str_metada_file) as metadata_file:
+                    data2 = json.load(metadata_file)
+
+                modo_altura = data2['modo_altura']
+                m = save_georef_matriz(data2, data2['offset_E_tot'], data2['offset_N_tot'], data2['offset_yaw'], data2['offset_altura'], modo_altura)
+                p1_ll = utm.to_latlon(m[0][0][0], m[0][0][1], int(m[0][0][2]), string.ascii_uppercase[int(m[0][0][3])])
+                p2_ll = utm.to_latlon(m[0][-1][0], m[0][-1][1], int(m[0][-1][2]), string.ascii_uppercase[int(m[0][-1][3])])
+                p3_ll = utm.to_latlon(m[-1][-1][0], m[-1][-1][1], int(m[-1][-1][2]),
+                                    string.ascii_uppercase[int(m[-1][-1][3])])
+                p4_ll = utm.to_latlon(m[-1][0][0], m[-1][0][1], int(m[-1][0][2]), string.ascii_uppercase[int(m[-1][0][3])])
+
+                # Coordenadas para el kml
+                cordinates = f"{str(p4_ll[1])},{str(p4_ll[0])},0 {str(p3_ll[1])},{str(p3_ll[0])},0 {str(p2_ll[1])},{str(p2_ll[0])},0 {str(p1_ll[1])},{str(p1_ll[0])},0 "
+
+                txt_desplazamiento = "_DN" + str(data2['offset_N']) + \
+                                    "_DE" + str(data2['offset_E']) + \
+                                    "_DY" + str(data2['offset_yaw']) + \
+                                    "_DV" + str(data2['desface_gps']) + \
+                                    "_DA" + str(data2['offset_altura']) + \
+                                    "_MA" + str(data2['modo_altura'])
+                if vuelo != vuelo_ant:
+                    if vuelo_ant != '':
+                        a = f'''</Folder>'''
+                        file.write(a)
+
+                    a = f'''<Folder>
+                            <name>{vuelo} - {txt_desplazamiento}</name>
+                            '''
+                    file.write(a)
+                    vuelo_ant = vuelo
+
+                txt_href = f'Temp/{nombre}.JPG'
+                # print(nombre)
+                a = f'''<GroundOverlay>
+                <name>{nombre + txt_desplazamiento}</name>
+                <Icon>
+                    <href>{txt_href}</href>
+                    <viewBoundScale>0.75</viewBoundScale>
+                </Icon>
+                <gx:LatLonQuad>
+                    <coordinates>
+                        {cordinates} 
+                    </coordinates>
+                </gx:LatLonQuad>
+            </GroundOverlay>
+            '''
+                file.write(a)
+            a = '''</Folder>
+            </Folder>
+        </kml>'''
+            file.write(a)
+
+    print(f"KML generado para la carpeta {path_save + '/' + path_save.split('/')[-1] + '.kml'}")
 
 if __name__ == "__main__":
     list_folders = []

@@ -12,6 +12,21 @@ from tkinter import filedialog
 from glob import glob
 from tqdm import tqdm
 
+def estan_en_linea(long1, long2, umbral=0.0001):
+    # Función para convertir de DMS a grados decimales
+    def dms_a_decimal(grados, minutos, segundos):
+        return grados + (minutos / 60) + (segundos / 3600)
+
+    # Extraer grados, minutos y segundos de long1 y long2
+    grados1, minutos1, segundos1 = [float(x) for x in long1.replace('"', '').replace('deg', '').replace('W', '').split()]
+    grados2, minutos2, segundos2 = [float(x) for x in long2.replace('"', '').replace('deg', '').replace('W', '').split()]
+
+    # Convertir a grados decimales
+    longitud_decimal1 = dms_a_decimal(grados1, minutos1, segundos1)
+    longitud_decimal2 = dms_a_decimal(grados2, minutos2, segundos2)
+
+    # Calcular la diferencia y retornar si están en línea o no
+    return abs(longitud_decimal1 - longitud_decimal2) < umbral
 
 def convertir_a_decimal(coordenada):
     # Dividir la cadena en grados, minutos y segundos
@@ -96,21 +111,17 @@ def findClosest(x1, y1, df, poly, geoImg, transformer):
     df = split_poly_into_lat_lon(df,poly)
     x_utm, y_utm = geoImg[y1][x1][0], geoImg[y1][x1][1]
     lon, lat = transformer.transform(x_utm, y_utm)
-    try:
-        # Calcula la distancia usando una función vectorizada
-        df['distance'] = df.apply(lambda row: haversine_distance(lat, lon, row['lat'], row['lon']), axis=1)
-
-        # Encuentra el punto más cercano
-        closest_row = df.loc[df['distance'].idxmin()]
-        closest_name = closest_row['name']
-        min1 = closest_row['distance']
-        return closest_name, min1, poly
-        
-    except KeyError:
-        # Aquí puedes manejar el error o simplemente pasarlo para continuar con el siguiente elemento
-        print(f"Ocurrió un error con el elemento. Continuando con el siguiente.")
-        return None, None, None
     
+    # Calcula la distancia usando una función vectorizada
+    df['distance'] = df.apply(lambda row: haversine_distance(lat, lon, row['lat'], row['lon']), axis=1)
+
+    # Encuentra el punto más cercano
+    closest_row = df.loc[df['distance'].idxmin()]
+    closest_name = closest_row['name']
+    min1 = closest_row['distance']
+    return closest_name, min1, poly
+    
+
     
 
 def closest_values_sorted(lst, n=3):
@@ -159,8 +170,8 @@ def save_metadata(metadata_path, image_path, offsetValue, metadatanew_path, offs
     with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
         data = json.load(archivo)
 
-
-    data[offsetkey] = offsetValue
+    old = data[offsetkey]
+    data[offsetkey] = offsetValue + old
 
     # Abre el archivo JSON en modo escritura
     with open(f'{metadatanew_path}/{image_path[:-4]}.txt', 'w') as archivo:
@@ -182,6 +193,8 @@ def correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
     oldValues = [None, None]
     oldImgepath = ''
     coordenadas_dict = df.set_index('name').to_dict(orient='index')
+    listFilaPath = []
+    valorFilaAnt = None
     for image_path in tqdm(img_names, desc="Calculando Offset E"):
 
         keypoint = []
@@ -319,8 +332,8 @@ def correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             else:   
                 offset_prev = 0
         
-        umbUP = 1.025
-        umbDOWN = 0.8
+        umbUP = 1.05
+        umbDOWN = 0.9
         if None not in oldValues:
 
             if oldValues[1] > 0:
@@ -332,6 +345,7 @@ def correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_oe = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
+                            
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
@@ -365,6 +379,7 @@ def correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_oe = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
+                            # print("CAMBIADO DE FILA")
                             offset_oe = offset_prev
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
                             save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
@@ -385,11 +400,12 @@ def correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                 else:
                     offset_oe = offset_prev
         else:
+            
             offset_oe = offset_prev
                                 
         oldValues[0] = offset_prev
         oldValues[1] = offset_oe
-        oldImgepath = image_path        
+        oldImgepath = image_path           
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E')
         save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E_tot')
         # cv2.imwrite(f"{folder_path}/{image_path}", img)
@@ -649,16 +665,18 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
     oldValues = [None, None]
     oldImgepath = ''
     coordenadas_dict = df.set_index('name').to_dict(orient='index')
+    listFilaPath = []
+    listVueloPath = []
+    listVueloValues = []
+    lonVueloAnt = None
     for image_path in tqdm(img_names, desc="Calculando Offset E"):
-
-        keypoint = []
+        offsetPrevList = []
 
         img = cv2.imread(folder_path + "/" + image_path)
 
         H, W, _ = img.shape
         img_resized = cv2.resize(img, (640, 640))
         results = model(source=img_resized, verbose=False)
-        alturaList = []
         centroList = []
         for result in results:
             if result.masks is not None:
@@ -739,22 +757,10 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
         if len(centroList) > 0:
             # print("Ambos grupos tienen elementos")
             for i in centroList:
-                x ,y,_,_ = i
-                cv2.circle(img, (x, y), 5, (0, 0, 255), -1)
-
-
-            # Calcular el centroide para cada grupo
-            centroide = calcular_centroide([(c[0], c[1]) for c in centroList])
-         
-
-            # Dibujar los centroides en la imagen
-            cv2.circle(img, centroide, 5, (255, 255, 0), -1)
-
-            xu, yu = centroide
-            xu_utm, yu_utm = geoImg[yu][xu][0], geoImg[yu][xu][1]
-            lonu, latu = transformer.transform(xu_utm, yu_utm)
-            namep1, minp1, polynamep1 = findClosest(xu,yu,df,'point', geoImg, transformer)
-            if namep1 != None:
+                xu ,yu,lonu,latu = i
+                cv2.circle(img, (xu, yu), 5, (0, 0, 255), -1)
+    
+                namep1, minp1, polynamep1 = findClosest(xu,yu,df,'point', geoImg, transformer)
                 # Obtener lon y lat directamente del diccionario
                 lonKMLu, latKMLu= coordenadas_dict[namep1][polynamep1].split(",")
                 lonKMLu, latKMLu = float(lonKMLu), float(latKMLu)
@@ -770,12 +776,10 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
         
 
                 # Convert kilometers to meters
-                offset_polyu = offset_kmu * 1000
+                offset_prev = offset_kmu * 1000
 
-                offset_prev = offset_polyu
-            
-            else:
-                offset_prev = 0
+                offsetPrevList.append(offset_prev)
+         
 
 
 
@@ -785,117 +789,42 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             else:   
                 offset_prev = 0
         
-        umbUP = 1.05
-        umbDOWN = 0.9
-        listFilaPath = []
-        valorFilaAnt = None
-        filaMIN = 5
-        if None not in oldValues:
-
-            if oldValues[1] > 0:
-                # print(f"OldValues: {oldValues[1]}")
-                if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
-                    if oldValues[0] > 0:
-                        if offset_prev > oldValues[0] * umbUP or offset_prev < oldValues[0] * umbDOWN:
-                            # print("CAMBIADO A VALOR DEL ANTERIOR")
-                            offset_oe = oldValues[1]
-                        else:
-                            # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < filaMIN and len(listFilaPath) > 0:
-                                for i in len(listFilaPath):
-                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
-                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
-                      
-                            offset_oe = offset_prev
-                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
-                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
-                            listFilaPath = []
-                            listFilaPath.append(oldImgepath)
-                            valorFilaAnt = oldValues[1]
-                    else: 
-                        if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
-                            # print("CAMBIADO A VALOR DEL ANTERIOR")
-                            offset_oe = oldValues[1]
-                        else:
-                            # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < filaMIN and len(listFilaPath) > 0:
-                                for i in len(listFilaPath):
-                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
-                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
-                      
-                            offset_oe = offset_prev
-                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
-                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
-                            listFilaPath = []
-                            listFilaPath.append(oldImgepath)
-                            valorFilaAnt = oldValues[1]
-                else:
-                    offset_oe = offset_prev
-            else:
-                # print(f"OldValues: {oldValues[1]}")
-                            
-                if offset_prev < oldValues[1] * umbUP or  offset_prev > oldValues[1] * umbDOWN:
-                    if oldValues[0] > 0:
-                        if offset_prev > oldValues[0] * umbUP or offset_prev < oldValues[0] * umbDOWN:
-                            # print("CAMBIADO A VALOR DEL ANTERIOR")
-                            offset_oe = oldValues[1]
-                        else:
-                            # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < filaMIN and len(listFilaPath) > 0:
-                                for i in len(listFilaPath):
-                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
-                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
-                      
-                            offset_oe = offset_prev
-                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
-                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
-                            listFilaPath = []
-                            listFilaPath.append(oldImgepath)
-                            valorFilaAnt = oldValues[1]
-                    else:
-                        if offset_prev < oldValues[0] * umbUP or offset_prev > oldValues[0] * umbDOWN:
-                            # print("CAMBIADO A VALOR DEL ANTERIOR")
-                            offset_oe = oldValues[1]
-                        else:
-                            # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < filaMIN and len(listFilaPath) > 0:
-                                for i in len(listFilaPath):
-                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
-                                    save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
-                      
-                            offset_oe = offset_prev
-                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E')
-                            save_metadata(metadata_path, oldImgepath, oldValues[0], metadatanew_path, 'offset_E_tot')
-                            listFilaPath = []
-                            listFilaPath.append(oldImgepath)
-                            valorFilaAnt = oldValues[1]
-                else:
-                    offset_oe = offset_prev
-                    
-        elif oldValues[0] == None and oldValues[1] != None:
-            if oldValues[1] > 0:
-                if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
-                    # print("CAMBIADO A VALOR DEL ANTERIOR")
-                    offset_oe = oldValues[1]
-                else:
-                    offset_oe = offset_prev	
-            else:
-                if offset_prev < oldValues[1] * umbUP or offset_prev > oldValues[1] * umbDOWN:
-                    # print("CAMBIADO A VALOR DEL ANTERIOR")
-                    offset_oe = oldValues[1]
-                else:
-                    offset_oe = offset_prev
-        else:
-            offset_oe = offset_prev
-                                
-        oldValues[0] = offset_prev
-        oldValues[1] = offset_oe
-        oldImgepath = image_path        
-        save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E')
-        save_metadata(metadata_path, image_path, offset_oe, metadatanew_path, 'offset_E_tot')
-        cv2.imwrite(f"{folder_path}/{image_path}", img)
+        
+        offset_prevL = closest_values_sorted(offsetPrevList, n=3)
+        if offset_prevL != []:
+            offset_prev = sum(offset_prevL)/len(offset_prevL)
+       
+        
+        
+        if lonVueloAnt != None:
+            if estan_en_linea(lonVueloAnt, df["GPSLongitude"]):
+                listVueloPath.append(image_path)
+                listVueloValues.append(offset_prev)
+            else: 
+                listCercanos = closest_values_sorted(listVueloValues, n=5)  
+                for i in listVueloPath:
+                    save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos) , metadatanew_path, 'offset_E')
+                    save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos), metadatanew_path, 'offset_E_tot')                
+                listVueloPath = []
+                listVueloValues = []
+                listVueloPath.append(image_path)
+                listVueloValues.append(offset_prev)
+                lonVueloAnt = df["GPSLongitude"]
+            
+        # Si llegamos a la ulitma imagen y la lista no esta vacia se calcula el promedio de los valores y se guarda el metadata
+        if image_path == img_names[-1] and listVueloPath != []:
+            listVueloPath.append(image_path)
+            listVueloValues.append(offset_prev)
+            listCercanos = closest_values_sorted(listVueloValues, n=3)
+            for i in listVueloPath:                        
+                save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos) , metadatanew_path, 'offset_E')
+                save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos), metadatanew_path, 'offset_E_tot')                
+            listVueloPath = []
+            listVueloValues = []
+            lonVueloAnt = df["GPSLongitude"]
+        
+        # cv2.imwrite(f"{folder_path}/{image_path}", img)
     print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}") 
-
 
 
 

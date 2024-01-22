@@ -2,7 +2,7 @@ from correctScripts.correctH import correctH, correctHCDS, correctHLLK
 from correctScripts.correctE import correctE, correctECDS, correctELLK
 from correctScripts.correctYaw import correctYaw, correctYawCDS
 from correctScripts.correctN import correctNLLK
-from correctScripts.saveGeoMatriz import saveGeoM
+from correctScripts.saveGeoMatriz import saveGeoM, saveKML
 from ultralytics import YOLO
 import os
 import cv2
@@ -31,18 +31,38 @@ def deleteGeoNp(geonp_path):
             except Exception as e:
                 print('Error al eliminar %s. Razón: %s' % (file_path, e))
 
-def resetMD(metadata_path):
-    for filename in tqdm(os.listdir(metadata_path), desc="Reset Metadata"):
-        file_path = os.path.join(metadata_path, filename)
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-        data['offset_E'] = 0
-        data['offset_altura'] = 0
-        data['offset_E_tot'] = 0
-        data['offset_yaw'] = 0
-        with open(file_path, 'w') as f:
+def resetMD(image_names, metadata_path, var = 'all'):
+    for image_path in tqdm(img_names, desc="Reset Metadata:"):
+        # Carga la metadata de la imagen
+        with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
+            data = json.load(archivo)
+        if var == 'all':
+            data['offset_E'] = 0
+            data['offset_altura'] = 0
+            data['offset_E_tot'] = 0
+            data['offset_yaw'] = 0
+        elif var == 'E':
+            data['offset_E'] = 0
+            data['offset_E_tot'] = 0
+        elif var == 'yaw':
+            data['offset_yaw'] = 0
+        elif var == 'altura':
+            data['offset_altura'] = 0
+            
+        with open(f'{metadata_path}/{image_path[:-4]}.txt', 'w') as f:
             json.dump(data, f, indent=4)
-        
+ 
+def adjustMD(image_names, metadata_path, param, value):
+    for image_path in tqdm(img_names, desc="Adjusting Metadata:"):
+        # Carga la metadata de la imagen
+        with open(f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
+            data = json.load(archivo)
+        data[param] = value
+        if param == 'offset_E': 
+            data['offset_E_tot'] = value      
+        with open(f'{metadata_path}/{image_path[:-4]}.txt', 'w') as f:
+            json.dump(data, f, indent=4)
+                
 
 # Función para seleccionar múltiples directorios
 def select_directories():
@@ -87,13 +107,10 @@ if __name__ == '__main__':
         difUmb = 100000000
     
         csv_file_path = 'kmlTables/LLKCorrection.csv'
-    elif planta == 'x':
-        exit()
+    
         
     else:
-        areaUmb = 10000
-        difUmb = 0.002
-        csv_file_path = select_kml()
+        exit()
 
     list_folders = []
     list_images = []
@@ -160,26 +177,15 @@ if __name__ == '__main__':
        
 
         print("Iniciando análisis de imágenes...")
-        
-        if planta == '3':
-            print("Ajustando Planta Campos del Sol...")
-            resetMD(metadata_path)
+        if planta == '1':
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho)
-            correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+            correctYaw(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
             deleteGeoNp(geonp_path)
-        elif planta == '4':
-            print("Ajustando Planta Lalakama...")
-            resetMD(metadata_path)
-            # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            # correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb)
-            # correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
-            # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            # correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
-    
-        else:
+        if planta == '2':
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
             correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
@@ -188,6 +194,27 @@ if __name__ == '__main__':
             correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
             deleteGeoNp(geonp_path)
         
-
+        if planta == '3':
+            print("Ajustando Planta Campos del Sol...")
+            resetMD(img_names, metadata_path)
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctHCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho)
+            correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+            deleteGeoNp(geonp_path)
+        elif planta == '4':
+            print("Ajustando Planta Lalakama...")
+            
+            resetMD(img_names, metadata_path, 'all')
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, 0.0025, areaUmb)
+            correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            adjustMD(img_names, metadata_path, 'offset_E', -4.5)
+            # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            # correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+            saveKML(img_names, path_root)
+            # deleteGeoNp(geonp_path)
+        
 
     print("Todas la carpetas OK")

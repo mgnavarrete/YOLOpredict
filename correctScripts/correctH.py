@@ -554,6 +554,9 @@ def correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
 def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb):
     oldValues = [None, None, None]
     alturaRelativaAnt = None
+    umbUP = 1.05
+    umbDOWN = 0.9
+    print("Ancho promedio: ", ancho)
     for image_path in tqdm(img_names, desc="Calculando Offset Altura"):
 
         img = cv2.imread(folder_path + "/" + image_path)
@@ -629,13 +632,13 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                                 # Calcular ancho paneles
                                 ancho1 = haversine_distance(lat1, lon1, lat2, lon2)
                                 ancho2 = haversine_distance(lat3, lon3, lat4, lon4)
-                                
-                                # print(f"Ancho1: {ancho1}")
-                                # print(f"Ancho2: {ancho2}")
+                
                                 # print(f"Ancho poly: {avg_ancho}")
-
-                                # print(f"Porcentaje: {porcentaje}")
-                                # alturaList.append(porcentaje)
+                                # if ancho1 < ancho * 1.1 and ancho1 > ancho * 0.7: # Si el ancho1 es cercano al ancho prom
+                                #     ancho1 = ancho
+                                # if ancho2 < ancho * 1.1 and ancho2 > ancho * 0.7: # Si el ancho2 es cercano al ancho prom
+                                #     ancho2 = ancho
+    
                                 valor1 = ancho1/ancho
                                 valor2 = ancho2/ancho
                                 
@@ -652,7 +655,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             offsetList = closest_values_sorted(alturaList, n=3)
             # promdeio de los valores de alturaList
             offset_altura1 = np.mean(offsetList)
-            print(f"Offset Altura1: {offset_altura1}")
+
             
             with open (f'{metadata_path}/{image_path[:-4]}.txt', 'r') as archivo:
                 data = json.load(archivo)
@@ -660,17 +663,18 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
             alturaRelativa = float(alturaRelativa)
             if alturaRelativa == float(0):
                 alturaRelativa = alturaRelativaAnt
+                
             if offset_altura1 == 0:
                 offset_prev = 0
-            else:        
-                offset_prev=  alturaRelativa  / (offset_altura1 - 1) 
+            else:
+                
+                offset_prev = alturaRelativa  * (1- (1/offset_altura1))
 
-        umbUP = 1.05
-        umbDOWN = 0.9
+        
         listFilaPath = []
         valorFilaAnt = None
         if None not in oldValues:
-
+            
             if oldValues[1] > 0:
                 # print(f"OldValues: {oldValues[1]}")
                 if offset_prev > oldValues[1] * umbUP or offset_prev < oldValues[1] * umbDOWN:
@@ -680,7 +684,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 5 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 1 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
                       
@@ -695,7 +699,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 5 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 1 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
                       
@@ -716,7 +720,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                             offset_altura = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 5 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 1 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
                       
@@ -732,7 +736,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                         else:
                             # print("CAMBIADO DE FILA")
                         
-                            if len(listFilaPath) < 5 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 1 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_altura')
                       
