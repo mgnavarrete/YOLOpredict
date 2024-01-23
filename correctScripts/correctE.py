@@ -981,7 +981,7 @@ def correctELLK2(folder_path, img_names, geonp_path, metadata_path, metadatanew_
                             offset_oe = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 3 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 10 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
@@ -998,7 +998,7 @@ def correctELLK2(folder_path, img_names, geonp_path, metadata_path, metadatanew_
                             offset_oe = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 3 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 10 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
@@ -1021,7 +1021,7 @@ def correctELLK2(folder_path, img_names, geonp_path, metadata_path, metadatanew_
                             offset_oe = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 3 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 10 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
@@ -1038,7 +1038,7 @@ def correctELLK2(folder_path, img_names, geonp_path, metadata_path, metadatanew_
                             offset_oe = oldValues[1]
                         else:
                             # print("CAMBIADO DE FILA")
-                            if len(listFilaPath) < 3 and len(listFilaPath) > 0:
+                            if len(listFilaPath) < 10 and len(listFilaPath) > 0:
                                 for i in len(listFilaPath):
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E')
                                     save_metadata(metadata_path, listFilaPath[i],valorFilaAnt, metadatanew_path, 'offset_E_tot')
