@@ -551,26 +551,31 @@ def correctH(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
             # print("El valor de 'offset_altura' se ha modificado con éxito.")
         print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
 
-def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb):
+def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, ancho, areaUmb, path_root):
     oldValues = [None, None, None]
     alturaRelativaAnt = None
     umbUP = 1.05
     umbDOWN = 0.9
     print("Ancho promedio: ", ancho)
+    # Crear carpeta mask
+    if not os.path.exists(f"{path_root}/masks"):
+        os.makedirs(f"{path_root}/masks")
     for image_path in tqdm(img_names, desc="Calculando Offset Altura"):
-
+        mascara = None
         img = cv2.imread(folder_path + "/" + image_path)
 
         H, W, _ = img.shape
         img_resized = cv2.resize(img, (640, 640))
         results = model(source=img_resized, verbose=False)
         alturaList = []
+        mascara = np.zeros((512, 640), dtype=np.float32)
         for result in results:
             if result.masks is not None:
                 for j, mask in enumerate(result.masks.data):
                     mask = mask.cpu().numpy() * 255
                     mask = cv2.resize(mask, (W, H))
                     img = cv2.resize(img, (W, H))
+                    
                     # Convertir la máscara a una imagen binaria
                     _, thresholded = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
 
@@ -590,7 +595,8 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
                         # print(f"approx_polygon: {approx_polygon}")
                         if len(approx_polygon) > 3:
-                                                
+                            mascara += mask      
+                                             
                             x1 = approx_polygon[0][0][0]
                             y1 = approx_polygon[0][0][1]
                             x2 = approx_polygon[1][0][0]
@@ -644,8 +650,8 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                                 
                                 alturaList.append(valor1)
                                 alturaList.append(valor2)
-        # cv2.imwrite(f'results/{image_path[:-4]}.png', img)
-
+        cv2.imwrite(f'results/{image_path[:-4]}.png', img)
+        cv2.imwrite(f'{path_root}/masks/{image_path[:-4]}.JPG', mascara)
         if len(alturaList) == 0:
             if oldValues[1] != None:
                 offset_prev = oldValues[1]

@@ -12,22 +12,33 @@ from tkinter import filedialog
 from glob import glob
 from tqdm import tqdm
 
-def estan_en_linea(long1, long2, umbral=0.0001):
+def estan_en_linea(long1, long2, umbral=0.5):
     # Función para convertir de DMS a grados decimales
     def dms_a_decimal(grados, minutos, segundos):
         return grados + (minutos / 60) + (segundos / 3600)
 
+    # Función para limpiar y extraer grados, minutos y segundos de una cadena
+    def extraer_dms(longitud):
+        limpio = longitud.replace('deg', '').replace('W', '').replace('"', '').replace("'", "")
+        partes = limpio.split()
+        return [float(part) for part in partes]
+
     # Extraer grados, minutos y segundos de long1 y long2
-    grados1, minutos1, segundos1 = [float(x) for x in long1.replace('"', '').replace('deg', '').replace('W', '').split()]
-    grados2, minutos2, segundos2 = [float(x) for x in long2.replace('"', '').replace('deg', '').replace('W', '').split()]
+    grados1, minutos1, segundos1 = extraer_dms(long1)
+    grados2, minutos2, segundos2 = extraer_dms(long2)
 
     # Convertir a grados decimales
     longitud_decimal1 = dms_a_decimal(grados1, minutos1, segundos1)
     longitud_decimal2 = dms_a_decimal(grados2, minutos2, segundos2)
 
-    # Calcular la diferencia y retornar si están en línea o no
-    return abs(longitud_decimal1 - longitud_decimal2) < umbral
+    # Calcular la diferencia en grados decimales
+    diferencia_grados = abs(longitud_decimal1 - longitud_decimal2)
 
+    # Convertir la diferencia a metros
+    diferencia_metros = diferencia_grados * 111319.5
+
+    # Retornar si están en línea y la diferencia en metros
+    return diferencia_grados < umbral, diferencia_metros
 def convertir_a_decimal(coordenada):
     # Dividir la cadena en grados, minutos y segundos
     partes = coordenada.split()
@@ -661,7 +672,7 @@ def correctE(folder_path, img_names, geonp_path, metadata_path, metadatanew_path
 
     print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}")
 
-def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model):
+def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, path_root):
     oldValues = [None, None]
     oldImgepath = ''
     coordenadas_dict = df.set_index('name').to_dict(orient='index')
@@ -678,6 +689,7 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
         img_resized = cv2.resize(img, (640, 640))
         results = model(source=img_resized, verbose=False)
         centroList = []
+        mascara = np.zeros((512, 640), dtype=np.float32)
         for result in results:
             if result.masks is not None:
                 for j, mask in enumerate(result.masks.data):
@@ -703,7 +715,7 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
                         # print(f"approx_polygon: {approx_polygon}")
                         if len(approx_polygon) > 3:
-                        
+                            mascara += mask
                             x1 = approx_polygon[0][0][0]
                             y1 = approx_polygon[0][0][1]
                             x2 = approx_polygon[1][0][0]
@@ -740,12 +752,12 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
                             xc = int(round((x1 + x2 + x3 + x4) / 4))
                             yc = int(round((y1 + y2 + y3 + y4) / 4))
-                            cv2.circle(img, (xc, yc), 5, (255, 255, 255), -1)
-                            cv2.circle(img, (x1, y1), 5, (0, 0, 255), -1)
-                            cv2.circle(img, (x4, y4), 5, (255, 0, 255), -1)
-                            cv2.circle(img, (x2, y2), 5, (255, 0, 0), -1)
-                            cv2.circle(img, (x3, y3), 5, (255, 255, 0), -1)
-                            cv2.polylines(img, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
+                            # cv2.circle(mascara, (xc, yc), 5, (255, 255, 255), -1)
+                            # cv2.circle(mascara, (x1, y1), 5, (0, 0, 255), -1)
+                            # cv2.circle(mascara, (x4, y4), 5, (255, 0, 255), -1)
+                            # cv2.circle(mascara, (x2, y2), 5, (255, 0, 0), -1)
+                            # cv2.circle(mascara, (x3, y3), 5, (255, 255, 0), -1)
+                            # cv2.polylines(mascara, [puntos_np], isClosed=True, color=(0, 255, 0), thickness=3)
                         
                             geoImg = np.load(f"{geonp_path}/{image_path[:-4]}.npy")
 
@@ -754,6 +766,7 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
 
                             centroList.append([xc, yc, lonImg, latImg])
 
+        cv2.imwrite(f"{path_root}/masks/{image_path}", mascara)
         if len(centroList) > 0:
             # print("Ambos grupos tienen elementos")
             for i in centroList:
@@ -793,37 +806,23 @@ def correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
         offset_prevL = closest_values_sorted(offsetPrevList, n=3)
         if offset_prevL != []:
             offset_prev = sum(offset_prevL)/len(offset_prevL)
-       
-        
+        with open(f'{metadata_path}/{image_path[:-4] }.txt', 'r') as archivo:
+            data = json.load(archivo)
+        lonGPS = data['GPSLongitude']
         
         if lonVueloAnt != None:
-            if estan_en_linea(lonVueloAnt, df["GPSLongitude"]):
-                listVueloPath.append(image_path)
-                listVueloValues.append(offset_prev)
+            boolLinea, dif = estan_en_linea(lonVueloAnt, lonGPS)
+            if boolLinea:
+                save_metadata(metadata_path, image_path, dif , metadatanew_path, 'offset_E')
+                save_metadata(metadata_path, image_path, dif, metadatanew_path, 'offset_E_tot')  
             else: 
-                listCercanos = closest_values_sorted(listVueloValues, n=3)  
-                for i in listVueloPath:
-                    save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos) , metadatanew_path, 'offset_E')
-                    save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos), metadatanew_path, 'offset_E_tot')                
-                listVueloPath = []
-                listVueloValues = []
-                listVueloPath.append(image_path)
-                listVueloValues.append(offset_prev)
-                lonVueloAnt = df["GPSLongitude"]
-            
-        # Si llegamos a la ulitma imagen y la lista no esta vacia se calcula el promedio de los valores y se guarda el metadata
-        if image_path == img_names[-1] and listVueloPath != []:
-            listVueloPath.append(image_path)
-            listVueloValues.append(offset_prev)
-            listCercanos = closest_values_sorted(listVueloValues, n=3)
-            for i in listVueloPath:                        
-                save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos) , metadatanew_path, 'offset_E')
-                save_metadata(metadata_path, i, sum(listCercanos)/len(listCercanos), metadatanew_path, 'offset_E_tot')                
-            listVueloPath = []
-            listVueloValues = []
-            lonVueloAnt = df["GPSLongitude"]
+                lonVueloAnt = lonGPS
+        else:
+
+            lonVueloAnt = lonGPS
+    
         
-        # cv2.imwrite(f"{folder_path}/{image_path}", img)
+         
     print(f"Offset E calculado para todas las imágenes de la carpeta {folder_path}") 
 
 

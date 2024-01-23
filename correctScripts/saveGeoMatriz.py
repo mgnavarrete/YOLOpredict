@@ -225,7 +225,7 @@ def saveKML(path_imagenes, path_save):
                     file.write(a)
                     vuelo_ant = vuelo
 
-                txt_href = f'Temp/{nombre}.JPG'
+                txt_href = f'original_img/{nombre}.JPG'
                 # print(nombre)
                 a = f'''<GroundOverlay>
                 <name>{nombre + txt_desplazamiento}</name>

@@ -1,6 +1,6 @@
 from correctScripts.correctH import correctH, correctHCDS, correctHLLK
 from correctScripts.correctE import correctE, correctECDS, correctELLK
-from correctScripts.correctYaw import correctYaw, correctYawCDS
+from correctScripts.correctYaw import correctYaw, correctYawCDS, correctYawLLK
 from correctScripts.correctN import correctNLLK
 from correctScripts.saveGeoMatriz import saveGeoM, saveKML
 from ultralytics import YOLO
@@ -103,7 +103,7 @@ if __name__ == '__main__':
         difUmb = 0.002
         csv_file_path = 'kmlTables/CDS - Strings.csv'
     elif planta == '4':
-        areaUmb = 10000
+        areaUmb = 0
         difUmb = 100000000
     
         csv_file_path = 'kmlTables/LLKCorrection.csv'
@@ -161,6 +161,7 @@ if __name__ == '__main__':
         path_root = path_root + "PP"
         print(f"Procesando Carpeta:{path_root}")
         # Construir rutas a los subdirectorios
+        
         folder_path = os.path.join(path_root, 'original_img')  # Para las imágenes originales
         imgsFolder = os.path.join(path_root, 'cvat')
         geonp_path = os.path.join(path_root, 'georef_numpy')  # Para archivos numpy georeferenciados
@@ -208,11 +209,11 @@ if __name__ == '__main__':
             
             resetMD(img_names, metadata_path, 'all')
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, 0.0025, areaUmb)
-            correctYawCDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, 0.0025, areaUmb, path_root)
+            correctYawLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
             adjustMD(img_names, metadata_path, 'offset_E', -5)
             saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            correctELLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
+            correctECDS(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
             saveKML(img_names, path_root)
             # deleteGeoNp(geonp_path)
         
