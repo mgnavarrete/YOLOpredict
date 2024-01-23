@@ -769,6 +769,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                 else:
                     offset_altura = offset_prev
         else:
+            valorFilaAnt = offset_prev
             offset_altura = offset_prev
         
         
