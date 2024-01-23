@@ -207,10 +207,10 @@ if __name__ == '__main__':
         elif planta == '4':
             print("Ajustando Planta Lalakama...")
             
-            # resetMD(img_names, metadata_path, 'all')
-            # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
-            # correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, 0.0025, areaUmb, path_root)
-            # correctYawLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
+            resetMD(img_names, metadata_path, 'all')
+            saveGeoM(img_names, metadata_path, geonp_path, path_root)   
+            correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, 0.0025, areaUmb, path_root)
+            correctYawLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model, yawKML, ancho, list_images, areaUmb, difUmb)
             adjustMD(img_names, metadata_path, 'offset_E', -5)
             # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
             # correctELLK2(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
