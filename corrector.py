@@ -112,7 +112,7 @@ if __name__ == '__main__':
     
         
     elif planta == '5':
-        areaUmb = 0
+        areaUmb = 15000
         difUmb = 100000000
     
         csv_file_path = 'kmlTables/SDL - Trackers numerados.csv'

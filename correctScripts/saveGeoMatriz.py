@@ -41,7 +41,12 @@ def save_georef_matriz(data, desp_este=0, desp_norte=0, desp_yaw=0, offset_altur
         yaw = np.pi * (float(data["GimbalYawDegree"]) + float(desp_yaw)) / 180
         center = get_image_pos_utm(data)
         if modo_altura == "relativo":
-            altura = float(data['RelativeAltitude']) - float(offset_altura)
+            #altura = float(data['RelativeAltitude']) - float(offset_altura)
+            if float(data['RelativeAltitude']) < 3:
+                relAltitude = 3
+            else:
+                relAltitude = float(data['RelativeAltitude'])
+            altura = relAltitude - float(offset_altura)
         else:
             altura = offset_altura
         GSD = tamano_pix * (altura) / dis_focal
@@ -56,7 +61,11 @@ def save_georef_matriz(data, desp_este=0, desp_norte=0, desp_yaw=0, offset_altur
         yaw = np.pi * (float(data["GimbalYawDegree"]) + float(desp_yaw)) / 180
         center = get_image_pos_utm(data)
         if modo_altura == "relativo":
-            altura = float(data['RelativeAltitude']) - float(offset_altura)
+            if float(data['RelativeAltitude']) < 3:
+                relAltitude = 3
+            else:
+                relAltitude = float(data['RelativeAltitude'])
+            altura = relAltitude - float(offset_altura)
         else:
             altura = offset_altura
         GSD = tamano_pix * (altura) / dis_focal
@@ -178,11 +187,11 @@ def saveGeoM(img_names, metadata_path, geonp_path, folder_path):
     
 
 def saveKML(path_imagenes, path_save):
-    with open(path_save + '/' + path_save.split('/')[-1] + '.kml', 'w') as file:
+    with open(path_save + '/' + path_save.split('/')[-1] + '_PA.kml', 'w') as file:
             a = f'''<?xml version="1.0" encoding="UTF-8"?>
         <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
         <Folder>
-            <name>{path_save.split('/')[-1]}</name>
+            <name>{path_save.split('/')[-1]}_PA</name>
             '''
             file.write(a)
             vuelo_ant = ''

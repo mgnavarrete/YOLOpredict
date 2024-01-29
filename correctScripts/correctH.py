@@ -650,8 +650,10 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                                 
                                 alturaList.append(valor1)
                                 alturaList.append(valor2)
+                                
         cv2.imwrite(f'results/{image_path[:-4]}.png', img)
         cv2.imwrite(f'{path_root}/masks/{image_path[:-4]}.JPG', mascara)
+        
         if len(alturaList) == 0:
             if oldValues[1] != None:
                 offset_prev = oldValues[1]
