@@ -667,6 +667,8 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
                 data = json.load(archivo)
             alturaRelativa = data['RelativeAltitude']
             alturaRelativa = float(alturaRelativa)
+            if alturaRelativa < 3:
+                alturaRelativa = float(3)
             if alturaRelativa == float(0):
                 alturaRelativa = alturaRelativaAnt
                 
@@ -782,6 +784,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
         save_metadata(metadata_path, image_path, offset_altura, metadatanew_path, 'offset_altura')
             # print("El valor de 'offset_altura' se ha modificado con éxito.")
     print(f"Offset de Altura calculado para todas las imágenes de la carpeta {folder_path}")
+
 
 
 if __name__ == '__main__':

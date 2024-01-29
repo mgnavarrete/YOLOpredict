@@ -667,8 +667,6 @@ def correctYawLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew
         save_metadata(metadata_path, image_path, offset_yaw, metadatanew_path, "offset_yaw")
     print(f"Offset Yaw calculado para todas las imágenes de la carpeta {folder_path}")
 
-
-
 if __name__ == '__main__':
 
     list_folders = []
