@@ -560,7 +560,7 @@ def correctHLLK(folder_path, img_names, geonp_path, metadata_path, metadatanew_p
     # Crear carpeta mask
     if not os.path.exists(f"{path_root}/masks"):
         os.makedirs(f"{path_root}/masks")
-    for image_path in tqdm(img_names, desc="Calculando Offset Altura"):
+    for image_path in tqdm(img_names, desc="Calculando Offset"):
         mascara = None
         img = cv2.imread(folder_path + "/" + image_path)
 

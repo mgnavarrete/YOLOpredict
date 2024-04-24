@@ -260,6 +260,6 @@ if __name__ == '__main__':
             # saveGeoM(img_names, metadata_path, geonp_path, path_root)   
             # correctELLK2(folder_path, img_names, geonp_path, metadata_path, metadatanew_path, df, transformer, model)
             saveKML(img_names, path_root)
-            # deleteGeoNp(geonp_path)
+            deleteGeoNp(geonp_path)
             
     print("Todas la carpetas OK")
