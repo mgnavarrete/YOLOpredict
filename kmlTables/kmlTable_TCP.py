@@ -2,7 +2,7 @@ from xml.etree import ElementTree as ET
 import pandas as pd
 import numpy as np
 
-list_file_path = ['test1/TC13_P_FEX.kml']
+list_file_path = ['../test1/TC13_P_FEX.kml']
 
 new_data = []
 id = 1

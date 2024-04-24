@@ -56,7 +56,7 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
     distance = R * c
     return distance 
-list_file_path = ['kmlTables/SDL - Trackers numerados.kml']
+list_file_path = ['SDL - Trackers numerados.kml']
 
 new_data = []
 id = 1

@@ -47,33 +47,6 @@ def anguloNorte(lat1, lon1, lat2, lon2):
 
     return bearing
 
-def ordenar_esquinas_proximas(rectangulo):
-
-    # Ordenar primero por latitud (y) y luego por longitud (x)
-    rectangulo.sort(key=lambda punto: (punto[1], punto[0]))
-
-    # La esquina inferior izquierda es el primer punto (menor latitud, luego menor longitud)
-    # La esquina inferior derecha es el segundo punto
-    # La esquina superior izquierda es el tercer punto
-    # La esquina superior derecha es el cuarto punto
-    esquinas = {
-        "inferior_izquierda": rectangulo[0],
-        "inferior_derecha": rectangulo[1],
-        "superior_izquierda": rectangulo[2],
-        "superior_derecha": rectangulo[3]
-    }
-
-    # Asegurarse de que las esquinas inferior y superior derechas tengan la mayor longitud
-    if esquinas["inferior_derecha"][0] < esquinas["inferior_izquierda"][0]:
-        esquinas["inferior_derecha"], esquinas["inferior_izquierda"] = esquinas["inferior_izquierda"], esquinas["inferior_derecha"]
-    if esquinas["superior_derecha"][0] < esquinas["superior_izquierda"][0]:
-        esquinas["superior_derecha"], esquinas["superior_izquierda"] = esquinas["superior_izquierda"], esquinas["superior_derecha"]
-
-    return esquinas
-
-
-
-
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     R = 6371  # Radio de la Tierra en kilómetros
@@ -83,7 +56,7 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
     distance = R * c
     return distance 
-list_file_path = ['CDS - Strings.kml']
+list_file_path = ['MNZ - Trackers.kml']
 
 new_data = []
 id = 1
@@ -127,25 +100,28 @@ for file_path in list_file_path:
             point = (centro_lat, centro_lon)
 
         # Calcular el ángulo para cada polígono
-        yaw1 = anguloNorte(float(poly2[1]), float(poly2[0]), float(poly1[1]), float(poly1[0]))
-        yaw2 = anguloNorte(float(poly3[1]), float(poly3[0]), float(poly4[1]), float(poly4[0]))
-
+        yaw1 = anguloNorte(float(poly1[1]), float(poly1[0]), float(poly3[1]), float(poly3[0]))
+        yaw2 = anguloNorte(float(poly4[1]), float(poly4[0]), float(poly2[1]), float(poly2[0]))
         yawprom = (yaw1 + yaw2) / 2
         
-        distancia1 = haversine_distance(poly2[1], poly2[0], poly3[1], poly3[0])
-        distancia2 = haversine_distance(poly1[1], poly1[0], poly4[1], poly4[0])
+        distancia1 = haversine_distance(poly1[1], poly1[0], poly4[1], poly4[0])
+        distancia2 = haversine_distance(poly3[1], poly3[0], poly2[1], poly2[0])
         distancia_promedio = (distancia1 + distancia2) / 2
+        
         # si yawprom sxe aleja de 180    
         if yawprom > 180 * 1.05 or yawprom < 180 * 0.95:
+            print("Yaw promedio fuera de rango")
     
              # Calcular el ángulo para cada polígono
-            yaw1 = anguloNorte(float(poly4[1]), float(poly4[0]), float(poly1[1]), float(poly1[0]))
-            yaw2 = anguloNorte(float(poly3[1]), float(poly3[0]), float(poly2[1]), float(poly2[0]))
+            yaw1 = anguloNorte(float(poly1[1]), float(poly1[0]), float(poly3[1]), float(poly3[0]))
+            yaw2 = anguloNorte(float(poly2[1]), float(poly2[0]), float(poly4[1]), float(poly4[0]))
 
             yawprom = (yaw1 + yaw2) / 2
-            
-            distancia1 = haversine_distance(poly4[1], poly4[0], poly3[1], poly3[0])
-            distancia2 = haversine_distance(poly1[1], poly1[0], poly2[1], poly2[0])
+            print("Yaw 1: ", yaw1)
+            print("Yaw 2: ", yaw2)
+            print("Yaw promedio corregido: ", yawprom)
+            distancia1 = haversine_distance(poly1[1], poly1[0], poly2[1], poly2[0])
+            distancia2 = haversine_distance(poly3[1], poly3[0], poly4[1], poly4[0])
             distancia_promedio = (distancia1 + distancia2) / 2
 
         
